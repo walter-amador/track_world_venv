@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-sim.launch.py — Checkpoint 1 launch file for robot_sim.
+sim.launch.py — Checkpoint 2 launch file for robot_sim.
 
 Starts:
   1. Gazebo Classic (gzserver + gzclient) with basic_world.world
@@ -10,11 +10,23 @@ Starts:
 
 Usage:
   ros2 launch robot_sim sim.launch.py
+  ros2 launch robot_sim sim.launch.py drive_mode:=ackermann
   ros2 launch robot_sim sim.launch.py use_rviz:=false
   ros2 launch robot_sim sim.launch.py verbose:=true
 
+Drive modes:
+  drive_mode:=diff       (default) 4-wheel skid-steer.
+                         /cmd_vel → geometry_msgs/Twist (linear.x, angular.z)
+  drive_mode:=ackermann  Ackermann front-steering, rear-driven (car-style).
+                         /cmd_vel → geometry_msgs/Twist (linear.x, angular.z;
+                         the plugin converts angular.z to a steering angle).
+
 Drive the robot (separate terminal):
   ros2 run teleop_twist_keyboard teleop_twist_keyboard
+
+Camera (always on):
+  /camera/image_raw    sensor_msgs/Image  @ 30 FPS  (640×480 RGB)
+  /camera/camera_info  sensor_msgs/CameraInfo
 """
 
 import os
@@ -24,9 +36,13 @@ from launch import LaunchDescription
 from launch.actions import (
     AppendEnvironmentVariable,
     DeclareLaunchArgument,
+    ExecuteProcess,
     IncludeLaunchDescription,
+    RegisterEventHandler,
+    TimerAction,
 )
 from launch.conditions import IfCondition
+from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import Command, LaunchConfiguration
 from launch_ros.actions import Node
@@ -57,14 +73,18 @@ def generate_launch_description():
         'use_sim_time', default_value='true',
         description='Use Gazebo simulation clock')
 
+    declare_drive_mode = DeclareLaunchArgument(
+        'drive_mode', default_value='diff',
+        choices=['diff', 'ackermann'],
+        description="Robot drive mode: 'diff' (4WD skid-steer) or 'ackermann'")
+
     use_rviz     = LaunchConfiguration('use_rviz')
     verbose      = LaunchConfiguration('verbose')
     use_sim_time = LaunchConfiguration('use_sim_time')
+    drive_mode   = LaunchConfiguration('drive_mode')
 
     # ----------------------------------------------------------------
     # Extend GAZEBO_MODEL_PATH so gzserver finds model://traffic_cone.
-    # The package.xml export handles this automatically after install+source,
-    # but AppendEnvironmentVariable ensures it works during development too.
     # ----------------------------------------------------------------
     set_gazebo_model_path = AppendEnvironmentVariable(
         name='GAZEBO_MODEL_PATH',
@@ -92,9 +112,14 @@ def generate_launch_description():
 
     # ----------------------------------------------------------------
     # 2. robot_state_publisher
-    #    Reads the URDF via xacro at launch time.
-    #    Publishes TF for fixed joints; listens to /joint_states for wheels.
+    #    The xacro `drive_mode` arg selects between diff-drive and
+    #    Ackermann URDF branches at parse time.
     # ----------------------------------------------------------------
+    robot_description = ParameterValue(
+        Command(['xacro ', urdf_xacro_file, ' drive_mode:=', drive_mode]),
+        value_type=str,
+    )
+
     robot_state_publisher = Node(
         package='robot_state_publisher',
         executable='robot_state_publisher',
@@ -102,15 +127,12 @@ def generate_launch_description():
         output='screen',
         parameters=[{
             'use_sim_time': use_sim_time,
-            'robot_description': ParameterValue(Command(['xacro ', urdf_xacro_file]), value_type=str),
+            'robot_description': robot_description,
         }]
     )
 
     # ----------------------------------------------------------------
     # 3. Spawn robot into Gazebo
-    #    spawn_entity.py reads from /robot_description and calls Gazebo's
-    #    /spawn_entity service (retries for up to 30 s while Gazebo starts).
-    #    z=0.01 gives a small drop on physics start so wheels settle on ground.
     # ----------------------------------------------------------------
     spawn_robot = Node(
         package='gazebo_ros',
@@ -121,7 +143,7 @@ def generate_launch_description():
             '-topic', 'robot_description',
             '-x', '0.0',
             '-y', '0.0',
-            '-z', '0.01',
+            '-z', '0.05',
             '-R', '0.0',
             '-P', '0.0',
             '-Y', '0.0',
@@ -130,7 +152,36 @@ def generate_launch_description():
     )
 
     # ----------------------------------------------------------------
-    # 4. RViz2 (optional)
+    # 4. After robot spawns: pause physics, wait 1s, unpause.
+    #    Prevents the ackermann drive plugin from reading uninitialized
+    #    joint velocities (NaN) on the very first physics step.
+    # ----------------------------------------------------------------
+    pause_physics = RegisterEventHandler(
+        event_handler=OnProcessExit(
+            target_action=spawn_robot,
+            on_exit=[
+                TimerAction(
+                    period=0.5,
+                    actions=[ExecuteProcess(
+                        cmd=['ros2', 'service', 'call',
+                             '/pause_physics', 'std_srvs/srv/Empty', '{}'],
+                        output='screen',
+                    )],
+                ),
+                TimerAction(
+                    period=2.0,
+                    actions=[ExecuteProcess(
+                        cmd=['ros2', 'service', 'call',
+                             '/unpause_physics', 'std_srvs/srv/Empty', '{}'],
+                        output='screen',
+                    )],
+                ),
+            ]
+        )
+    )
+
+    # ----------------------------------------------------------------
+    # 5. RViz2 (optional)
     # ----------------------------------------------------------------
     rviz2 = Node(
         package='rviz2',
@@ -146,10 +197,12 @@ def generate_launch_description():
         declare_use_rviz,
         declare_verbose,
         declare_use_sim_time,
+        declare_drive_mode,
         set_gazebo_model_path,
         gzserver,
         gzclient,
         robot_state_publisher,
         spawn_robot,
+        pause_physics,
         rviz2,
     ])
