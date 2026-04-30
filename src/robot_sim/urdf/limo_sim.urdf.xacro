@@ -159,7 +159,9 @@
     <gazebo reference="${prefix}_wheel_link">
       <material>Gazebo/FlatBlack</material>
       <mu1>1.2</mu1>
-      <mu2>1.0</mu2>
+      <!-- mu2=0.4: allows lateral sliding during skid-steer pivot turns.
+           steered_wheel keeps mu2=1.0 for ackermann lateral grip. -->
+      <mu2>0.4</mu2>
       <kp>1000000.0</kp>
       <kd>100.0</kd>
       <minDepth>0.001</minDepth>
@@ -360,8 +362,10 @@
         <wheel_separation>${TRACK_HALF*2}</wheel_separation>
         <wheel_diameter>${WHEEL_RADIUS*2}</wheel_diameter>
         <wheel_diameter>${WHEEL_RADIUS*2}</wheel_diameter>
-        <max_wheel_torque>20</max_wheel_torque>
-        <max_wheel_acceleration>2.0</max_wheel_acceleration>
+        <!-- 2 Nm keeps ground force (40 N/wheel) proportionate to robot weight
+             (11.7 N/wheel). 20 Nm caused 400 N/wheel → ODE tips robot in turns. -->
+        <max_wheel_torque>2</max_wheel_torque>
+        <max_wheel_acceleration>1.0</max_wheel_acceleration>
         <command_topic>cmd_vel</command_topic>
         <odometry_topic>odom</odometry_topic>
         <odometry_frame>odom</odometry_frame>

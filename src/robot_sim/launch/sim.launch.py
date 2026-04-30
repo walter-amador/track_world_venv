@@ -3,10 +3,11 @@
 sim.launch.py — Checkpoint 2 launch file for robot_sim.
 
 Starts:
-  1. Gazebo Classic (gzserver + gzclient) with basic_world.world
-  2. robot_state_publisher with the xacro-processed URDF
-  3. spawn_entity.py to insert the robot into Gazebo
-  4. RViz2 (optional, default on)
+  1. Pre-launch cleanup (kills any lingering gzserver/gzclient/robot_state_publisher)
+  2. Gazebo Classic (gzserver + gzclient) with basic_world.world
+  3. robot_state_publisher with the xacro-processed URDF
+  4. spawn_entity.py to insert the robot into Gazebo
+  5. RViz2 (optional, default on)
 
 Usage:
   ros2 launch robot_sim sim.launch.py
@@ -89,6 +90,24 @@ def generate_launch_description():
     set_gazebo_model_path = AppendEnvironmentVariable(
         name='GAZEBO_MODEL_PATH',
         value=os.path.join(pkg_robot_sim, 'models')
+    )
+
+    # ----------------------------------------------------------------
+    # 0. Pre-launch cleanup — kill any lingering simulation processes
+    #    so relaunching with a different drive_mode always starts fresh.
+    #    A stale gzserver from an ackermann run would otherwise hold the
+    #    lock, cause the new gzserver to exit 255, and leave the old
+    #    ackermann robot in the world regardless of drive_mode:=diff.
+    # ----------------------------------------------------------------
+    # killall matches exact process name (not cmdline substring), so it
+    # cannot accidentally kill this bash process itself the way pkill -f would.
+    cleanup = ExecuteProcess(
+        cmd=['bash', '-c',
+             'killall -9 gzserver 2>/dev/null; '
+             'killall -9 gzclient 2>/dev/null; '
+             'killall -9 robot_state_publisher 2>/dev/null; '
+             'sleep 2'],
+        output='screen',
     )
 
     # ----------------------------------------------------------------
@@ -193,16 +212,29 @@ def generate_launch_description():
         condition=IfCondition(use_rviz)
     )
 
+    # ----------------------------------------------------------------
+    # Start Gazebo and ROS nodes only after cleanup finishes.
+    # ----------------------------------------------------------------
+    start_sim = RegisterEventHandler(
+        event_handler=OnProcessExit(
+            target_action=cleanup,
+            on_exit=[
+                gzserver,
+                gzclient,
+                robot_state_publisher,
+                spawn_robot,
+                pause_physics,
+                rviz2,
+            ]
+        )
+    )
+
     return LaunchDescription([
         declare_use_rviz,
         declare_verbose,
         declare_use_sim_time,
         declare_drive_mode,
         set_gazebo_model_path,
-        gzserver,
-        gzclient,
-        robot_state_publisher,
-        spawn_robot,
-        pause_physics,
-        rviz2,
+        cleanup,
+        start_sim,
     ])
