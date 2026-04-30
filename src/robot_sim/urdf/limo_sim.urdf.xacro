@@ -1,0 +1,326 @@
+<?xml version="1.0"?>
+<robot name="limo_sim" xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <!-- ================================================================
+       MATERIALS (used by RViz2)
+  ================================================================ -->
+  <material name="chassis_grey">
+    <color rgba="0.5 0.5 0.5 1.0"/>
+  </material>
+  <material name="wheel_black">
+    <color rgba="0.1 0.1 0.1 1.0"/>
+  </material>
+  <material name="caster_white">
+    <color rgba="0.9 0.9 0.9 1.0"/>
+  </material>
+  <material name="camera_blue">
+    <color rgba="0.0 0.4 0.8 1.0"/>
+  </material>
+  <material name="lidar_dark">
+    <color rgba="0.2 0.2 0.2 1.0"/>
+  </material>
+
+  <!-- ================================================================
+       BASE FOOTPRINT — root link, sits on ground plane
+  ================================================================ -->
+  <link name="base_footprint"/>
+
+  <joint name="base_joint" type="fixed">
+    <parent link="base_footprint"/>
+    <child link="base_link"/>
+    <origin xyz="0.0 0.0 0.1" rpy="0 0 0"/>
+  </joint>
+
+  <!-- ================================================================
+       BASE LINK — chassis
+       Box: 0.4m(x) x 0.3m(y) x 0.12m(z), mass=4kg
+       Inertia (solid box):
+         ixx = m/12*(y^2+z^2) = 4/12*(0.09+0.0144) = 0.0348
+         iyy = m/12*(x^2+z^2) = 4/12*(0.16+0.0144) = 0.0581
+         izz = m/12*(x^2+y^2) = 4/12*(0.16+0.09)   = 0.0833
+  ================================================================ -->
+  <link name="base_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><box size="0.4 0.3 0.12"/></geometry>
+      <material name="chassis_grey"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><box size="0.4 0.3 0.12"/></geometry>
+    </collision>
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="4.0"/>
+      <inertia ixx="0.034800" ixy="0" ixz="0"
+               iyy="0.058133" iyz="0"
+               izz="0.083333"/>
+    </inertial>
+  </link>
+
+  <!-- ================================================================
+       LEFT DRIVE WHEEL
+       origin y=+0.085 (half of 0.17m track width)
+       origin z=-0.055 (wheel_radius 0.045 - base_link_z_offset 0.1)
+       rpy=-pi/2 rotates cylinder so its long axis aligns with world Y.
+       axis="0 0 1" then means spin around local Z = world Y.
+  ================================================================ -->
+  <joint name="left_wheel_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="left_wheel_link"/>
+    <origin xyz="0.0 0.085 -0.055" rpy="-1.5707963 0 0"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+
+  <link name="left_wheel_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><cylinder radius="0.045" length="0.04"/></geometry>
+      <material name="wheel_black"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><cylinder radius="0.045" length="0.04"/></geometry>
+    </collision>
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.15"/>
+      <!-- Cylinder: ixx=iyy=m/12*(3r^2+l^2), izz=m/2*r^2 -->
+      <inertia ixx="0.000096" ixy="0" ixz="0"
+               iyy="0.000096" iyz="0"
+               izz="0.000152"/>
+    </inertial>
+  </link>
+
+  <!-- ================================================================
+       RIGHT DRIVE WHEEL
+  ================================================================ -->
+  <joint name="right_wheel_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="right_wheel_link"/>
+    <origin xyz="0.0 -0.085 -0.055" rpy="-1.5707963 0 0"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+
+  <link name="right_wheel_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><cylinder radius="0.045" length="0.04"/></geometry>
+      <material name="wheel_black"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><cylinder radius="0.045" length="0.04"/></geometry>
+    </collision>
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.15"/>
+      <inertia ixx="0.000096" ixy="0" ixz="0"
+               iyy="0.000096" iyz="0"
+               izz="0.000152"/>
+    </inertial>
+  </link>
+
+  <!-- ================================================================
+       FRONT CASTER WHEELS (fixed, frictionless spheres)
+       z = -(base_link_z_offset - caster_radius) = -(0.1 - 0.025) = -0.075
+  ================================================================ -->
+  <joint name="front_caster_left_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="front_caster_left_link"/>
+    <origin xyz="0.15 0.06 -0.075" rpy="0 0 0"/>
+  </joint>
+
+  <link name="front_caster_left_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><sphere radius="0.025"/></geometry>
+      <material name="caster_white"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><sphere radius="0.025"/></geometry>
+    </collision>
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.05"/>
+      <!-- Sphere: i = 2/5*m*r^2 -->
+      <inertia ixx="0.0000125" ixy="0" ixz="0"
+               iyy="0.0000125" iyz="0"
+               izz="0.0000125"/>
+    </inertial>
+  </link>
+
+  <joint name="front_caster_right_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="front_caster_right_link"/>
+    <origin xyz="0.15 -0.06 -0.075" rpy="0 0 0"/>
+  </joint>
+
+  <link name="front_caster_right_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><sphere radius="0.025"/></geometry>
+      <material name="caster_white"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><sphere radius="0.025"/></geometry>
+    </collision>
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.05"/>
+      <inertia ixx="0.0000125" ixy="0" ixz="0"
+               iyy="0.0000125" iyz="0"
+               izz="0.0000125"/>
+    </inertial>
+  </link>
+
+  <!-- ================================================================
+       CAMERA LINK — geometry placeholder for future CV sensor
+  ================================================================ -->
+  <joint name="camera_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="camera_link"/>
+    <origin xyz="0.15 0.0 0.08" rpy="0 0 0"/>
+  </joint>
+
+  <link name="camera_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><box size="0.04 0.08 0.03"/></geometry>
+      <material name="camera_blue"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><box size="0.04 0.08 0.03"/></geometry>
+    </collision>
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.05"/>
+      <inertia ixx="0.0001" ixy="0" ixz="0"
+               iyy="0.0001" iyz="0"
+               izz="0.0001"/>
+    </inertial>
+  </link>
+
+  <!-- ================================================================
+       LIDAR LINK — geometry placeholder for future SLAM sensor
+  ================================================================ -->
+  <joint name="lidar_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="lidar_link"/>
+    <origin xyz="0.0 0.0 0.10" rpy="0 0 0"/>
+  </joint>
+
+  <link name="lidar_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><cylinder radius="0.04" length="0.05"/></geometry>
+      <material name="lidar_dark"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><cylinder radius="0.04" length="0.05"/></geometry>
+    </collision>
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.1"/>
+      <inertia ixx="0.0001" ixy="0" ixz="0"
+               iyy="0.0001" iyz="0"
+               izz="0.0001"/>
+    </inertial>
+  </link>
+
+  <!-- ================================================================
+       GAZEBO MATERIAL OVERRIDES
+  ================================================================ -->
+  <gazebo reference="base_link">
+    <material>Gazebo/Grey</material>
+  </gazebo>
+
+  <gazebo reference="left_wheel_link">
+    <material>Gazebo/FlatBlack</material>
+    <mu1>10000</mu1>
+    <mu2>10000</mu2>
+    <kp>500000.0</kp>
+    <kd>10.0</kd>
+    <minDepth>0.001</minDepth>
+    <maxVel>0.1</maxVel>
+    <fdir1>1 0 0</fdir1>
+  </gazebo>
+
+  <gazebo reference="right_wheel_link">
+    <material>Gazebo/FlatBlack</material>
+    <mu1>10000</mu1>
+    <mu2>10000</mu2>
+    <kp>500000.0</kp>
+    <kd>10.0</kd>
+    <minDepth>0.001</minDepth>
+    <maxVel>0.1</maxVel>
+    <fdir1>1 0 0</fdir1>
+  </gazebo>
+
+  <gazebo reference="front_caster_left_link">
+    <material>Gazebo/White</material>
+    <mu1>0.001</mu1>
+    <mu2>0.001</mu2>
+    <kp>1000000.0</kp>
+    <kd>100.0</kd>
+    <minDepth>0.001</minDepth>
+    <maxVel>1.0</maxVel>
+  </gazebo>
+
+  <gazebo reference="front_caster_right_link">
+    <material>Gazebo/White</material>
+    <mu1>0.001</mu1>
+    <mu2>0.001</mu2>
+    <kp>1000000.0</kp>
+    <kd>100.0</kd>
+    <minDepth>0.001</minDepth>
+    <maxVel>1.0</maxVel>
+  </gazebo>
+
+  <!-- ================================================================
+       DIFFERENTIAL DRIVE PLUGIN
+       libgazebo_ros_diff_drive.so is a model plugin (bare <gazebo> block).
+       wheel_separation = 0.085*2 = 0.17m (matches URDF joint origins exactly)
+       wheel_diameter   = 0.045*2 = 0.09m
+  ================================================================ -->
+  <gazebo>
+    <plugin name="limo_diff_drive" filename="libgazebo_ros_diff_drive.so">
+      <ros/>
+      <update_rate>30</update_rate>
+      <left_joint>left_wheel_joint</left_joint>
+      <right_joint>right_wheel_joint</right_joint>
+      <wheel_separation>0.17</wheel_separation>
+      <wheel_diameter>0.09</wheel_diameter>
+      <max_wheel_torque>20</max_wheel_torque>
+      <max_wheel_acceleration>1.0</max_wheel_acceleration>
+      <command_topic>cmd_vel</command_topic>
+      <odometry_topic>odom</odometry_topic>
+      <odometry_frame>odom</odometry_frame>
+      <robot_base_frame>base_footprint</robot_base_frame>
+      <publish_odom>true</publish_odom>
+      <publish_odom_tf>true</publish_odom_tf>
+      <publish_wheel_tf>false</publish_wheel_tf>
+    </plugin>
+  </gazebo>
+
+  <!-- ================================================================
+       JOINT STATE PUBLISHER PLUGIN
+       Publishes /joint_states for the two wheel joints.
+       robot_state_publisher subscribes to /joint_states to broadcast TF.
+  ================================================================ -->
+  <gazebo>
+    <plugin name="limo_joint_state" filename="libgazebo_ros_joint_state_publisher.so">
+      <ros>
+        <remapping>~/out:=joint_states</remapping>
+      </ros>
+      <update_rate>30</update_rate>
+      <joint_name>left_wheel_joint</joint_name>
+      <joint_name>right_wheel_joint</joint_name>
+    </plugin>
+  </gazebo>
+
+</robot>

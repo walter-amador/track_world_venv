@@ -1,0 +1,72 @@
+<?xml version="1.0"?>
+<sdf version="1.6">
+  <model name="traffic_cone">
+
+    <static>true</static>
+
+    <link name="link">
+
+      <!-- Base: wide flat cylinder sitting on ground (center at z=0.02) -->
+      <visual name="base_visual">
+        <pose>0 0 0.02 0 0 0</pose>
+        <geometry>
+          <cylinder>
+            <radius>0.12</radius>
+            <length>0.04</length>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>1.0 0.4 0.0 1.0</ambient>
+          <diffuse>1.0 0.4 0.0 1.0</diffuse>
+          <specular>0.1 0.05 0.0 1.0</specular>
+        </material>
+      </visual>
+
+      <collision name="base_collision">
+        <pose>0 0 0.02 0 0 0</pose>
+        <geometry>
+          <cylinder>
+            <radius>0.12</radius>
+            <length>0.04</length>
+          </cylinder>
+        </geometry>
+      </collision>
+
+      <!-- Body: narrow tall cylinder on top of base (center at z=0.17) -->
+      <visual name="body_visual">
+        <pose>0 0 0.17 0 0 0</pose>
+        <geometry>
+          <cylinder>
+            <radius>0.06</radius>
+            <length>0.26</length>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>1.0 0.4 0.0 1.0</ambient>
+          <diffuse>1.0 0.4 0.0 1.0</diffuse>
+          <specular>0.1 0.05 0.0 1.0</specular>
+        </material>
+      </visual>
+
+      <collision name="body_collision">
+        <pose>0 0 0.17 0 0 0</pose>
+        <geometry>
+          <cylinder>
+            <radius>0.06</radius>
+            <length>0.26</length>
+          </cylinder>
+        </geometry>
+      </collision>
+
+      <inertial>
+        <mass>1.0</mass>
+        <inertia>
+          <ixx>0.01</ixx><ixy>0</ixy><ixz>0</ixz>
+          <iyy>0.01</iyy><iyz>0</iyz>
+          <izz>0.01</izz>
+        </inertia>
+      </inertial>
+
+    </link>
+  </model>
+</sdf>

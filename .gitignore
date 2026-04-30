@@ -1,0 +1,22 @@
+# colcon build artifacts
+build/
+install/
+log/
+
+# ROS2 generated
+*.pyc
+__pycache__/
+*.egg-info/
+
+# Gazebo runtime
+.gazebo/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
