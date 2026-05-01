@@ -103,15 +103,15 @@ colcon build --symlink-install
 ```
          ─────────── top (y=3.0, 5 m) ────────────
         /   TL arc                       TR arc    \
- left (x=-4, 3 m)    inner road network   right (x=4, 3 m) ═══ exit (y=0, 2.5 m) →
+ left (x=-4, 3 m)    inner road network   right (x=4, 3 m) ═══ exit (y=0, 2 m) →
         \   BL arc                       BR arc    /
          ─────────── bottom (y=-3.0, 5 m) ──────────
 ```
 Inner road network:
-- Inner horizontal: `y=0.0`,   `x ∈ [−4, 4]`  (T-joins left & right outer roads + exit)
-- Inner vertical:   `x=0.0`,   `y ∈ [−3, 3]`  (T-joins top & bottom outer roads)
-- Upper-left sub:   `y=1.25`,  `x ∈ [−4, 0]`  (T-joins left outer + inner vertical)
-- Lower-right sub:  `y=−1.25`, `x ∈ [0, 4]`   (T-joins inner vertical + right outer)
+- Inner horizontal: `y=0.0`,   `x ∈ [−3.75, 3.75]`  (7.5 m; T-joins left & right outer roads + exit)
+- Inner vertical:   `x=0.0`,   `y ∈ [−2.75, 2.75]`  (5.5 m; T-joins top & bottom outer roads)
+- Upper-left sub:   `y=1.25`,  `x ∈ [−3.75, −0.25]`  (3.5 m; T-joins left outer + inner vertical)
+- Lower-right sub:  `y=−1.25`, `x ∈ [0.25, 3.75]`   (3.5 m; T-joins inner vertical + right outer)
 
 ## Key Technical Decisions
 

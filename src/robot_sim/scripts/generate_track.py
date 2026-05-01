@@ -30,11 +30,11 @@ Key coordinates (road centrelines):
   Outer left:     x = −4.0,  y ∈ [−1.5, 1.5]
   Outer right:    x =  4.0,  y ∈ [−1.5, 1.5]
   Corners:        R = 1.5 m, centres at (±2.5, ±1.5)
-  Exit road:      y =  0.0,  x ∈ [4.0, 6.5]
-  Inner horiz:    y =  0.0,  x ∈ [−4.0, 4.0]
-  Inner vert:     x =  0.0,  y ∈ [−3.0, 3.0]
-  Inner UL:       y =  1.25, x ∈ [−4.0, 0.0]
-  Inner LR:       y = −1.25, x ∈ [ 0.0, 4.0]
+  Exit road:      y =  0.0,  x ∈ [4.25, 6.25]
+  Inner horiz:    y =  0.0,  x ∈ [−3.75, 3.75]
+  Inner vert:     x =  0.0,  y ∈ [−2.75, 2.75]
+  Inner UL:       y =  1.25, x ∈ [−3.75, −0.25]
+  Inner LR:       y = −1.25, x ∈ [ 0.25, 3.75]
 """
 
 import math
@@ -212,18 +212,18 @@ def build_track():
     segs.append(arc( 2.5, -1.5, 270, 360))   # bottom-right
 
     # ════ RIGHT EXIT ROAD ════════════════════════════════════════════════════
-    # Centre at (5.25, 0.0), from x=4.0 to x=6.5 (2.5 m), T-joined to right outer
-    segs.append(straight(5.25, 0.0, 2.5, yaw=0.0))
+    # Centre at (5.25, 0.0), from x≈4.25 to x≈6.25 (2.0 m), T-joined to right outer
+    segs.append(straight(5.25, 0.0, 2.0, yaw=0.0))
 
     # ════ INNER ROAD NETWORK ═════════════════════════════════════════════════
-    # Inner horizontal:  y = 0.0,   x ∈ [−4.0, 4.0]  (8 m)
-    segs.append(straight(0.0,  0.0, 8.0, yaw=0.0))
-    # Inner vertical:    x = 0.0,   y ∈ [−3.0, 3.0]  (6 m)
-    segs.append(straight(0.0,  0.0, 6.0, yaw=math.pi/2))
-    # Upper-left inner:  y = 1.25,  x ∈ [−4.0, 0.0]  (4 m) — asymmetric sub-loop
-    segs.append(straight(-2.0, 1.25, 4.0, yaw=0.0))
-    # Lower-right inner: y = −1.25, x ∈ [0.0,  4.0]  (4 m) — asymmetric sub-loop
-    segs.append(straight( 2.0,-1.25, 4.0, yaw=0.0))
+    # Inner horizontal:  y = 0.0,   x ∈ [−3.75, 3.75]  (7.5 m)
+    segs.append(straight(0.0,  0.0, 7.5, yaw=0.0))
+    # Inner vertical:    x = 0.0,   y ∈ [−2.75, 2.75]  (5.5 m)
+    segs.append(straight(0.0,  0.0, 5.5, yaw=math.pi/2))
+    # Upper-left inner:  y = 1.25,  x ∈ [−3.75, −0.25]  (3.5 m) — asymmetric sub-loop
+    segs.append(straight(-2.0, 1.25, 3.5, yaw=0.0))
+    # Lower-right inner: y = −1.25, x ∈ [0.25, 3.75]  (3.5 m) — asymmetric sub-loop
+    segs.append(straight( 2.0,-1.25, 3.5, yaw=0.0))
 
     return ''.join(segs)
 
