@@ -1,0 +1,73 @@
+<?xml version="1.0"?>
+<sdf version="1.6">
+  <model name="track_straight_0_5m">
+    <static>true</static>
+    <link name="link">
+      <visual name="v001">
+        <pose>0.00000 0.00000 0.00100 0 0 0.00000</pose>
+        <geometry>
+          <box>
+            <size>0.50000 0.50000 0.00200</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0.180 0.180 0.180 1</ambient>
+          <diffuse>0.180 0.180 0.180 1</diffuse>
+          <specular>0.05 0.05 0.05 1</specular>
+        </material>
+      </visual>
+      <visual name="v002">
+        <pose>0.00000 0.23500 0.00400 0 0 0.00000</pose>
+        <geometry>
+          <box>
+            <size>0.50000 0.03000 0.00200</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>1.000 1.000 1.000 1</ambient>
+          <diffuse>1.000 1.000 1.000 1</diffuse>
+          <specular>0.05 0.05 0.05 1</specular>
+        </material>
+      </visual>
+      <visual name="v003">
+        <pose>0.00000 -0.23500 0.00400 0 0 0.00000</pose>
+        <geometry>
+          <box>
+            <size>0.50000 0.03000 0.00200</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>1.000 1.000 1.000 1</ambient>
+          <diffuse>1.000 1.000 1.000 1</diffuse>
+          <specular>0.05 0.05 0.05 1</specular>
+        </material>
+      </visual>
+      <visual name="v004">
+        <pose>-0.11500 0.00000 0.00400 0 0 0.00000</pose>
+        <geometry>
+          <box>
+            <size>0.15000 0.03000 0.00200</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>1.000 1.000 1.000 1</ambient>
+          <diffuse>1.000 1.000 1.000 1</diffuse>
+          <specular>0.05 0.05 0.05 1</specular>
+        </material>
+      </visual>
+      <visual name="v005">
+        <pose>0.11500 0.00000 0.00400 0 0 0.00000</pose>
+        <geometry>
+          <box>
+            <size>0.15000 0.03000 0.00200</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>1.000 1.000 1.000 1</ambient>
+          <diffuse>1.000 1.000 1.000 1</diffuse>
+          <specular>0.05 0.05 0.05 1</specular>
+        </material>
+      </visual>
+    </link>
+  </model>
+</sdf>

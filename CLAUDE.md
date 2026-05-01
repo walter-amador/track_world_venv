@@ -22,10 +22,15 @@ robot_sim/                     ← colcon workspace root (also git root)
         track.launch.py        ← competition track world (same drive_mode arg)
       worlds/
         basic_world.world      ← flat ground + two traffic cones
-        track_world.world      ← generated competition track (371 SDF models)
+        track_world.world      ← generated competition track (~39 <include> pieces)
       scripts/
         generate_track.py      ← regenerates track_world.world; run with python3
       models/traffic_cone/     ← custom Gazebo model (no system cone exists)
+      models/track_straight_1m/     ← reusable 1 m straight track piece
+      models/track_straight_0_5m/   ← reusable 0.5 m straight track piece
+      models/track_arc_90/          ← reusable 90° arc, R=1.5 m
+      models/track_t_intersection/  ← reusable T-junction (stem vertical, arm to +X)
+      models/track_cross_intersection/ ← reusable 4-way cross
       urdf/limo_sim.urdf.xacro ← LIMO-like robot, dual drive mode
       config/rviz2.rviz
   build/   ← gitignored
@@ -96,7 +101,7 @@ colcon build --symlink-install
   - Two continuous sidelines: 3 cm wide
   - Dashed centre line: 3 cm wide, 15 cm on / 8 cm gap
 - **Road surface:** dark grey (#181818), 2 mm thin, visual-only
-- **371 SDF models** total (road + markings); all static
+- **39 `<include>` elements** referencing 5 reusable model pieces (was 371 inline box models)
 - Robot spawns at (−4.0, −0.75, 0.05), yaw=π/2 (facing north, on outer-left road)
 
 ### Track layout (X=east, Y=north, all centreline coords)
@@ -112,6 +117,24 @@ Inner road network:
 - Inner vertical:   `x=0.0`,   `y ∈ [−2.75, 2.75]`  (5.5 m; T-joins top & bottom outer roads)
 - Upper-left sub:   `y=1.25`,  `x ∈ [−3.75, −0.25]`  (3.5 m; T-joins left outer + inner vertical)
 - Lower-right sub:  `y=−1.25`, `x ∈ [0.25, 3.75]`   (3.5 m; T-joins inner vertical + right outer)
+
+### Reusable track piece geometry
+All pieces are visual-only (no collision), road surface at z=0.001, markings at z=0.004.
+- **`track_straight_1m`**: 1 m along local X, centred at origin. Connect ends at x=±0.5.
+- **`track_straight_0_5m`**: 0.5 m along local X, centred at origin. Connect ends at x=±0.25.
+- **`track_arc_90`**: arc-centre at local origin, R=1.5 m, spans 0°→90° (first quadrant).
+  Entry at local (1.5, 0) — road heading +Y. Exit at local (0, 1.5) — road heading −X.
+  Rotate 0/90°/180°/270° to place TR/TL/BL/BR corners at world (±2.5, ±1.5).
+- **`track_t_intersection`**: stem = 1 m vertical road centred at origin (y ∈ [−0.5, 0.5]);
+  arm = 1 m horizontal road centred at (0.75, 0) extending to +X (x ∈ [0.25, 1.25]).
+  `yaw=0` at (−4, 0) → inner-horizontal arm extends right; at (4, 0) → exit-road arm extends right.
+- **`track_cross_intersection`**: ±0.75 m cross (1.5 m roads) centred at origin. Place at (0, 0).
+
+### `generate_track.py` approach
+Uses a single `place(name, uri, x, y, yaw)` helper that emits `<include>` blocks.
+39 pieces total: 4 arcs + 16 straight outer + 2 T-intersections + 1 cross + 16 straight inner.
+Piece counts per section: top/bottom 5×1m each; left/right 2×1m+1T each; exit 1×1m;
+inner-horiz 5×1m; inner-vert 4×1m; upper-left 3×1m+1×0.5m; lower-right 1×0.5m+3×1m.
 
 ## Key Technical Decisions
 
@@ -135,7 +158,7 @@ Inner road network:
 ## Checkpoints
 - [x] **CP1** — Flat world, two cones, LIMO-like robot, teleop drive, RViz2
 - [x] **CP2** — Dual drive modes (diff 4WD + Ackermann), active camera (30 FPS), RViz2
-- [x] **CP2.5** — Competition track world (`track.launch.py`): outer loop + inner roads + lane markings
+- [x] **CP2.5** — Competition track world (`track.launch.py`): outer loop + inner roads + lane markings, reusable model pieces
 - [ ] **CP3** — SLAM (slam_toolbox), build a map of the environment
 - [ ] **CP4** — Nav2 autonomous navigation to goal poses
 - [ ] **CP5** — Computer vision integration for cone/lane detection

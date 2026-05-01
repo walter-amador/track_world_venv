@@ -1,0 +1,2 @@
+# generated from @PROJECT_NAME@ env hook
+ament_prepend_unique_value GAZEBO_MODEL_PATH "$AMENT_CURRENT_PREFIX/share/@PROJECT_NAME@/models"
