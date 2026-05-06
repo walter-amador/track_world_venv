@@ -109,6 +109,53 @@ def build_track():
     return '\n'.join(pieces)
 
 
+# ── Traffic sign placements ───────────────────────────────────────────────────
+#
+# Signs follow real road convention: on the RIGHT side of the road, face toward
+# approaching traffic.  Yaw key (box thin axis = Y, face is the ±Y plane):
+#   yaw=π   → face points south  (for northbound roads, robot approaching from S)
+#   yaw=π/2 → face points west   (for eastbound roads,  robot approaching from W)
+#
+# Road width = 0.50 m; sign offset = 0.35 m from centreline (just outside edge).
+#
+# Layout reminder (centrelines):
+#   Left outer: x=-4.0, N-S, T-junction at y=0 (arm east toward inner horiz)
+#   Inner horiz: y=0,   E-W, cross at (0,0)
+#   Inner vert:  x=0,   N-S, cross at (0,0), lower-right arm at y=-1.25
+#   Exit road:   y=0, x ∈ [4.25, 6.25], eastbound
+#
+def build_signs():
+    signs = []
+
+    # Robot goes north along left outer road (x=-4) from spawn (-4,-0.75).
+    # Upcoming T-junction at y=0 branches right onto inner-horizontal road.
+    # FORWARD: "continue straight ahead (north)".
+    signs.append(place("sign_forward_1", "sign_forward", -3.65, -0.60, yaw=math.pi))
+
+    # Robot enters inner horizontal (y=0) going east after the left T-junction.
+    # Cross intersection (0,0) is ahead — a left turn (north) is available.
+    # LEFT: "left turn option at cross".
+    signs.append(place("sign_left_1", "sign_left", -0.85, -0.35, yaw=math.pi / 2))
+
+    # Robot going north on inner vertical (x=0); lower-right road branches east at y=-1.25.
+    # RIGHT: "right turn option ahead".
+    signs.append(place("sign_right_1", "sign_right", 0.35, -1.75, yaw=math.pi))
+
+    # Same northbound inner vertical road, approaching cross intersection at y=0.
+    # STOP: "stop before entering the cross".
+    signs.append(place("sign_stop_1", "sign_stop", 0.35, -0.80, yaw=math.pi))
+
+    # Exit road (y=0, x > 4.25) is one-way eastbound.
+    # NO ENTRY: mid-road, reminds that re-entry going west is not allowed.
+    signs.append(place("sign_no_entry_1", "sign_no_entry", 5.00, -0.35, yaw=math.pi / 2))
+
+    # End of exit road at x ≈ 6.25.
+    # DEAD END: road terminates ahead.
+    signs.append(place("sign_dead_end_1", "sign_dead_end", 6.10, -0.35, yaw=math.pi / 2))
+
+    return '\n'.join(signs)
+
+
 # ── World file template ───────────────────────────────────────────────────────
 
 _WORLD_TEMPLATE = """\
@@ -145,6 +192,8 @@ _WORLD_TEMPLATE = """\
     </gui>
 
 {track}
+
+{signs}
   </world>
 </sdf>
 """
@@ -154,7 +203,8 @@ _WORLD_TEMPLATE = """\
 
 if __name__ == "__main__":
     track_sdf = build_track()
-    world_content = _WORLD_TEMPLATE.format(track=track_sdf)
+    signs_sdf = build_signs()
+    world_content = _WORLD_TEMPLATE.format(track=track_sdf, signs=signs_sdf)
 
     script_dir = os.path.dirname(os.path.abspath(__file__))
     out_path = os.path.normpath(
