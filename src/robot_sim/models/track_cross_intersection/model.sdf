@@ -3,240 +3,99 @@
   <model name="track_cross_intersection">
     <static>true</static>
     <link name="link">
+
+      <!-- Road surface: East-West arm (1.5 m × 0.5 m) -->
       <visual name="v001">
-        <pose>0.00000 0.00000 0.00100 0 0 0.00000</pose>
-        <geometry>
-          <box>
-            <size>1.50000 0.50000 0.00200</size>
-          </box>
-        </geometry>
+        <pose>0 0 0.001 0 0 0</pose>
+        <geometry><box><size>1.000 0.50000 0.00200</size></box></geometry>
         <material>
           <ambient>0.180 0.180 0.180 1</ambient>
           <diffuse>0.180 0.180 0.180 1</diffuse>
           <specular>0.05 0.05 0.05 1</specular>
         </material>
       </visual>
+
+      <!-- Road surface: North-South arm (0.5 m × 1.5 m) -->
       <visual name="v002">
-        <pose>0.00000 0.23500 0.00400 0 0 0.00000</pose>
-        <geometry>
-          <box>
-            <size>1.50000 0.03000 0.00200</size>
-          </box>
-        </geometry>
-        <material>
-          <ambient>1.000 1.000 1.000 1</ambient>
-          <diffuse>1.000 1.000 1.000 1</diffuse>
-          <specular>0.05 0.05 0.05 1</specular>
-        </material>
-      </visual>
-      <visual name="v003">
-        <pose>0.00000 -0.23500 0.00400 0 0 0.00000</pose>
-        <geometry>
-          <box>
-            <size>1.50000 0.03000 0.00200</size>
-          </box>
-        </geometry>
-        <material>
-          <ambient>1.000 1.000 1.000 1</ambient>
-          <diffuse>1.000 1.000 1.000 1</diffuse>
-          <specular>0.05 0.05 0.05 1</specular>
-        </material>
-      </visual>
-      <visual name="v004">
-        <pose>-0.57500 0.00000 0.00400 0 0 0.00000</pose>
-        <geometry>
-          <box>
-            <size>0.15000 0.03000 0.00200</size>
-          </box>
-        </geometry>
-        <material>
-          <ambient>1.000 1.000 1.000 1</ambient>
-          <diffuse>1.000 1.000 1.000 1</diffuse>
-          <specular>0.05 0.05 0.05 1</specular>
-        </material>
-      </visual>
-      <visual name="v005">
-        <pose>-0.34500 0.00000 0.00400 0 0 0.00000</pose>
-        <geometry>
-          <box>
-            <size>0.15000 0.03000 0.00200</size>
-          </box>
-        </geometry>
-        <material>
-          <ambient>1.000 1.000 1.000 1</ambient>
-          <diffuse>1.000 1.000 1.000 1</diffuse>
-          <specular>0.05 0.05 0.05 1</specular>
-        </material>
-      </visual>
-      <visual name="v006">
-        <pose>-0.11500 0.00000 0.00400 0 0 0.00000</pose>
-        <geometry>
-          <box>
-            <size>0.15000 0.03000 0.00200</size>
-          </box>
-        </geometry>
-        <material>
-          <ambient>1.000 1.000 1.000 1</ambient>
-          <diffuse>1.000 1.000 1.000 1</diffuse>
-          <specular>0.05 0.05 0.05 1</specular>
-        </material>
-      </visual>
-      <visual name="v007">
-        <pose>0.11500 0.00000 0.00400 0 0 0.00000</pose>
-        <geometry>
-          <box>
-            <size>0.15000 0.03000 0.00200</size>
-          </box>
-        </geometry>
-        <material>
-          <ambient>1.000 1.000 1.000 1</ambient>
-          <diffuse>1.000 1.000 1.000 1</diffuse>
-          <specular>0.05 0.05 0.05 1</specular>
-        </material>
-      </visual>
-      <visual name="v008">
-        <pose>0.34500 0.00000 0.00400 0 0 0.00000</pose>
-        <geometry>
-          <box>
-            <size>0.15000 0.03000 0.00200</size>
-          </box>
-        </geometry>
-        <material>
-          <ambient>1.000 1.000 1.000 1</ambient>
-          <diffuse>1.000 1.000 1.000 1</diffuse>
-          <specular>0.05 0.05 0.05 1</specular>
-        </material>
-      </visual>
-      <visual name="v009">
-        <pose>0.57500 0.00000 0.00400 0 0 0.00000</pose>
-        <geometry>
-          <box>
-            <size>0.15000 0.03000 0.00200</size>
-          </box>
-        </geometry>
-        <material>
-          <ambient>1.000 1.000 1.000 1</ambient>
-          <diffuse>1.000 1.000 1.000 1</diffuse>
-          <specular>0.05 0.05 0.05 1</specular>
-        </material>
-      </visual>
-      <visual name="v010">
-        <pose>0.00000 0.00000 0.00100 0 0 1.57080</pose>
-        <geometry>
-          <box>
-            <size>1.50000 0.50000 0.00200</size>
-          </box>
-        </geometry>
+        <pose>0 0 0.001 0 0 0</pose>
+        <geometry><box><size>0.50000 1.0 0.00200</size></box></geometry>
         <material>
           <ambient>0.180 0.180 0.180 1</ambient>
           <diffuse>0.180 0.180 0.180 1</diffuse>
           <specular>0.05 0.05 0.05 1</specular>
         </material>
       </visual>
-      <visual name="v011">
-        <pose>-0.23500 0.00000 0.00400 0 0 1.57080</pose>
-        <geometry>
-          <box>
-            <size>1.50000 0.03000 0.00200</size>
-          </box>
-        </geometry>
-        <material>
-          <ambient>1.000 1.000 1.000 1</ambient>
-          <diffuse>1.000 1.000 1.000 1</diffuse>
-          <specular>0.05 0.05 0.05 1</specular>
-        </material>
-      </visual>
-      <visual name="v012">
-        <pose>0.23500 -0.00000 0.00400 0 0 1.57080</pose>
-        <geometry>
-          <box>
-            <size>1.50000 0.03000 0.00200</size>
-          </box>
-        </geometry>
-        <material>
-          <ambient>1.000 1.000 1.000 1</ambient>
-          <diffuse>1.000 1.000 1.000 1</diffuse>
-          <specular>0.05 0.05 0.05 1</specular>
-        </material>
-      </visual>
-      <visual name="v013">
-        <pose>-0.00000 -0.57500 0.00400 0 0 1.57080</pose>
-        <geometry>
-          <box>
-            <size>0.15000 0.03000 0.00200</size>
-          </box>
-        </geometry>
-        <material>
-          <ambient>1.000 1.000 1.000 1</ambient>
-          <diffuse>1.000 1.000 1.000 1</diffuse>
-          <specular>0.05 0.05 0.05 1</specular>
-        </material>
-      </visual>
-      <visual name="v014">
-        <pose>-0.00000 -0.34500 0.00400 0 0 1.57080</pose>
-        <geometry>
-          <box>
-            <size>0.15000 0.03000 0.00200</size>
-          </box>
-        </geometry>
-        <material>
-          <ambient>1.000 1.000 1.000 1</ambient>
-          <diffuse>1.000 1.000 1.000 1</diffuse>
-          <specular>0.05 0.05 0.05 1</specular>
-        </material>
-      </visual>
-      <visual name="v015">
-        <pose>-0.00000 -0.11500 0.00400 0 0 1.57080</pose>
-        <geometry>
-          <box>
-            <size>0.15000 0.03000 0.00200</size>
-          </box>
-        </geometry>
-        <material>
-          <ambient>1.000 1.000 1.000 1</ambient>
-          <diffuse>1.000 1.000 1.000 1</diffuse>
-          <specular>0.05 0.05 0.05 1</specular>
-        </material>
-      </visual>
-      <visual name="v016">
-        <pose>0.00000 0.11500 0.00400 0 0 1.57080</pose>
-        <geometry>
-          <box>
-            <size>0.15000 0.03000 0.00200</size>
-          </box>
-        </geometry>
-        <material>
-          <ambient>1.000 1.000 1.000 1</ambient>
-          <diffuse>1.000 1.000 1.000 1</diffuse>
-          <specular>0.05 0.05 0.05 1</specular>
-        </material>
-      </visual>
-      <visual name="v017">
-        <pose>0.00000 0.34500 0.00400 0 0 1.57080</pose>
-        <geometry>
-          <box>
-            <size>0.15000 0.03000 0.00200</size>
-          </box>
-        </geometry>
-        <material>
-          <ambient>1.000 1.000 1.000 1</ambient>
-          <diffuse>1.000 1.000 1.000 1</diffuse>
-          <specular>0.05 0.05 0.05 1</specular>
-        </material>
-      </visual>
-      <visual name="v018">
-        <pose>0.00000 0.57500 0.00400 0 0 1.57080</pose>
-        <geometry>
-          <box>
-            <size>0.15000 0.03000 0.00200</size>
-          </box>
-        </geometry>
-        <material>
-          <ambient>1.000 1.000 1.000 1</ambient>
-          <diffuse>1.000 1.000 1.000 1</diffuse>
-          <specular>0.05 0.05 0.05 1</specular>
-        </material>
-      </visual>
+
+      <!-- ── Sidelines ─────────────────────────────────────────────────────────
+        Matching straight track: 3 cm wide at ±0.235 m from road centre.
+        Each shortened arm spans 0.5 m (centred at ±0.25 m).                 -->
+
+      <!-- North arm sidelines (run N-S along x = ±0.235) -->
+      <visual name="v003"><pose>-0.235  0.250 0.004 0 0 0</pose><geometry><box><size>0.030 0.500 0.002</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+      <visual name="v004"><pose> 0.235  0.250 0.004 0 0 0</pose><geometry><box><size>0.030 0.500 0.002</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+
+      <!-- South arm sidelines -->
+      <visual name="v005"><pose>-0.235 -0.250 0.004 0 0 0</pose><geometry><box><size>0.030 0.500 0.002</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+      <visual name="v006"><pose> 0.235 -0.250 0.004 0 0 0</pose><geometry><box><size>0.030 0.500 0.002</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+
+      <!-- East arm sidelines (run E-W along y = ±0.235) -->
+      <visual name="v007"><pose> 0.250  0.235 0.004 0 0 0</pose><geometry><box><size>0.500 0.030 0.002</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+      <visual name="v008"><pose> 0.250 -0.235 0.004 0 0 0</pose><geometry><box><size>0.500 0.030 0.002</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+
+      <!-- West arm sidelines -->
+      <visual name="v009"><pose>-0.250  0.235 0.004 0 0 0</pose><geometry><box><size>0.500 0.030 0.002</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+      <visual name="v010"><pose>-0.250 -0.235 0.004 0 0 0</pose><geometry><box><size>0.500 0.030 0.002</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+
+      <!-- ── Crosswalk stripes ───────────────────────────────────────────────
+        Each arm: 8 thin stripes, 0.02 m thick × 0.15 m long.
+        Stripe centres across the lane: -0.179, -0.128, -0.077, -0.026,
+                      0.026, 0.077, 0.128, 0.179.
+        Each arm also has one horizontal right-half stripe: 0.22 m × 0.03 m. -->
+
+      <!-- North arm — stripes run E-W (perpendicular to N-S travel) -->
+      <visual name="v011"><pose>-0.179  0.325 0.004 0 0 1.5708</pose><geometry><box><size>0.150 0.020 0.002</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+      <visual name="v012"><pose>-0.128  0.325 0.004 0 0 1.5708</pose><geometry><box><size>0.150 0.020 0.002</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+      <visual name="v013"><pose>-0.077  0.325 0.004 0 0 1.5708</pose><geometry><box><size>0.150 0.020 0.002</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+      <visual name="v014"><pose>-0.026  0.325 0.004 0 0 1.5708</pose><geometry><box><size>0.150 0.020 0.002</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+      <visual name="v015"><pose> 0.026  0.325 0.004 0 0 1.5708</pose><geometry><box><size>0.150 0.020 0.002</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+      <visual name="v016"><pose> 0.077  0.325 0.004 0 0 1.5708</pose><geometry><box><size>0.150 0.020 0.002</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+      <visual name="v017"><pose> 0.128  0.325 0.004 0 0 1.5708</pose><geometry><box><size>0.150 0.020 0.002</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+      <visual name="v018"><pose> 0.179  0.325 0.004 0 0 1.5708</pose><geometry><box><size>0.150 0.020 0.002</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+      <visual name="v019"><pose>-0.110 0.4025 0.004 0 0 0</pose><geometry><box><size>0.220 0.030 0.002</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+
+      <!-- South arm — mirror of North (y negated) -->
+      <visual name="v020"><pose>-0.179 -0.325 0.004 0 0 1.5708</pose><geometry><box><size>0.150 0.020 0.002</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+      <visual name="v021"><pose>-0.128 -0.325 0.004 0 0 1.5708</pose><geometry><box><size>0.150 0.020 0.002</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+      <visual name="v022"><pose>-0.077 -0.325 0.004 0 0 1.5708</pose><geometry><box><size>0.150 0.020 0.002</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+      <visual name="v023"><pose>-0.026 -0.325 0.004 0 0 1.5708</pose><geometry><box><size>0.150 0.020 0.002</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+      <visual name="v024"><pose> 0.026 -0.325 0.004 0 0 1.5708</pose><geometry><box><size>0.150 0.020 0.002</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+      <visual name="v025"><pose> 0.077 -0.325 0.004 0 0 1.5708</pose><geometry><box><size>0.150 0.020 0.002</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+      <visual name="v026"><pose> 0.128 -0.325 0.004 0 0 1.5708</pose><geometry><box><size>0.150 0.020 0.002</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+      <visual name="v027"><pose> 0.179 -0.325 0.004 0 0 1.5708</pose><geometry><box><size>0.150 0.020 0.002</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+      <visual name="v047"><pose>0.110 -0.4025 0.004 0 0 0</pose><geometry><box><size>0.220 0.030 0.002</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+
+      <!-- East arm — stripes run N-S (perpendicular to E-W travel) -->
+      <visual name="v029"><pose>0.325 -0.179 0.004 0 0 0</pose><geometry><box><size>0.150 0.020 0.002</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+      <visual name="v030"><pose>0.325 -0.128 0.004 0 0 0</pose><geometry><box><size>0.150 0.020 0.002</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+      <visual name="v031"><pose>0.325 -0.077 0.004 0 0 0</pose><geometry><box><size>0.150 0.020 0.002</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+      <visual name="v032"><pose>0.325 -0.026 0.004 0 0 0</pose><geometry><box><size>0.150 0.020 0.002</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+      <visual name="v033"><pose>0.325  0.026 0.004 0 0 0</pose><geometry><box><size>0.150 0.020 0.002</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+      <visual name="v034"><pose>0.325  0.077 0.004 0 0 0</pose><geometry><box><size>0.150 0.020 0.002</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+      <visual name="v035"><pose>0.325  0.128 0.004 0 0 0</pose><geometry><box><size>0.150 0.020 0.002</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+      <visual name="v036"><pose>0.325  0.179 0.004 0 0 0</pose><geometry><box><size>0.150 0.020 0.002</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+      <visual name="v048"><pose>0.4025 0.110 0.004 0 0 1.5708</pose><geometry><box><size>0.220 0.030 0.002</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+
+      <!-- West arm — mirror of East (x negated) -->
+      <visual name="v038"><pose>-0.325 -0.179 0.004 0 0 0</pose><geometry><box><size>0.150 0.020 0.002</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+      <visual name="v039"><pose>-0.325 -0.128 0.004 0 0 0</pose><geometry><box><size>0.150 0.020 0.002</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+      <visual name="v040"><pose>-0.325 -0.077 0.004 0 0 0</pose><geometry><box><size>0.150 0.020 0.002</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+      <visual name="v041"><pose>-0.325 -0.026 0.004 0 0 0</pose><geometry><box><size>0.150 0.020 0.002</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+      <visual name="v042"><pose>-0.325  0.026 0.004 0 0 0</pose><geometry><box><size>0.150 0.020 0.002</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+      <visual name="v043"><pose>-0.325  0.077 0.004 0 0 0</pose><geometry><box><size>0.150 0.020 0.002</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+      <visual name="v044"><pose>-0.325  0.128 0.004 0 0 0</pose><geometry><box><size>0.150 0.020 0.002</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+      <visual name="v045"><pose>-0.325  0.179 0.004 0 0 0</pose><geometry><box><size>0.150 0.020 0.002</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+      <visual name="v049"><pose>-0.4025 -0.110 0.004 0 0 1.5708</pose><geometry><box><size>0.220 0.030 0.002</size></box></geometry><material><ambient>1 1 1 1</ambient><diffuse>1 1 1 1</diffuse><specular>0.1 0.1 0.1 1</specular></material></visual>
+
     </link>
   </model>
 </sdf>
