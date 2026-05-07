@@ -101,22 +101,30 @@ colcon build --symlink-install
   - Two continuous sidelines: 3 cm wide
   - Dashed centre line: 3 cm wide, 15 cm on / 8 cm gap
 - **Road surface:** dark grey (#181818), 2 mm thin, visual-only
-- **39 `<include>` elements** referencing 5 reusable model pieces (was 371 inline box models)
-- Robot spawns at (−4.0, −0.75, 0.05), yaw=π/2 (facing north, on outer-left road)
+- **47 `<include>` elements** (37 track pieces + 8 traffic signs + ground + sun)
+- Robot spawns at (−4.0, −0.30, 0.05), yaw=π/2 (facing north, on outer-left road middle straight, between the two T-junctions)
 
-### Track layout (X=east, Y=north, all centreline coords)
+### Track layout (FIRA H-pattern; X=east, Y=north, all centreline coords)
 ```
-         ─────────── top (y=3.0, 5 m) ────────────
-        /   TL arc                       TR arc    \
- left (x=-4, 3 m)    inner road network   right (x=4, 3 m) ═══ exit (y=0, 2 m) →
-        \   BL arc                       BR arc    /
-         ─────────── bottom (y=-3.0, 5 m) ──────────
+              top T (0,3) ⊤
+         ┌────────────────────┐
+        /                      \
+       │     ┌── upper ──┐      │
+   ⊢ left T (-4,1)─cross(0,1)─right T (4,1) ⊣
+       │       │       │        │
+       │       │ inner │        │
+       │       │  vert │        │
+   ⊢ left T (-4,-1)─cross(0,-1)─right T (4,-1) ⊣
+       │     └── lower ──┘      │
+        \                      /
+         └────────────────────┘
+              bottom T (0,-3) ⊥
 ```
-Inner road network:
-- Inner horizontal: `y=0.0`,   `x ∈ [−3.75, 3.75]`  (7.5 m; T-joins left & right outer roads + exit)
-- Inner vertical:   `x=0.0`,   `y ∈ [−2.75, 2.75]`  (5.5 m; T-joins top & bottom outer roads)
-- Upper-left sub:   `y=1.25`,  `x ∈ [−3.75, −0.25]`  (3.5 m; T-joins left outer + inner vertical)
-- Lower-right sub:  `y=−1.25`, `x ∈ [0.25, 3.75]`   (3.5 m; T-joins inner vertical + right outer)
+Outer loop: top y=3.0, bottom y=-3.0, left x=-4.0, right x=4.0; corners R=1.5 at (±2.5, ±1.5).
+Inner roads:
+- Upper horizontal: `y=1.0`, `x ∈ [−3.5, 3.5]` — joins left/right outer T's and crosses inner vertical
+- Lower horizontal: `y=-1.0`, `x ∈ [−3.5, 3.5]` — same structure
+- Inner vertical:   `x=0`,   `y ∈ [−2.5, 2.5]` — joins top/bottom outer T's, passes through both crosses
 
 ### Reusable track piece geometry
 All pieces are visual-only (no collision), road surface at z=0.001, markings at z=0.004.
@@ -125,16 +133,17 @@ All pieces are visual-only (no collision), road surface at z=0.001, markings at 
 - **`track_arc_90`**: arc-centre at local origin, R=1.5 m, spans 0°→90° (first quadrant).
   Entry at local (1.5, 0) — road heading +Y. Exit at local (0, 1.5) — road heading −X.
   Rotate 0/90°/180°/270° to place TR/TL/BL/BR corners at world (±2.5, ±1.5).
-- **`track_t_intersection`**: stem = 1 m vertical road centred at origin (y ∈ [−0.5, 0.5]);
-  arm = 1 m horizontal road centred at (0.75, 0) extending to +X (x ∈ [0.25, 1.25]).
-  `yaw=0` at (−4, 0) → inner-horizontal arm extends right; at (4, 0) → exit-road arm extends right.
-- **`track_cross_intersection`**: ±0.75 m cross (1.5 m roads) centred at origin. Place at (0, 0).
+- **`track_t_intersection`**: stem = 1 m vertical (x∈[−0.25,0.25], y∈[−0.5,0.5]);
+  arm = 0.5 m × 0.5 m patch extending to +X (x∈[0,0.5], y∈[−0.25,0.25]).
+  Connections: stem ends at (0, ±0.5), arm tip at (+0.5, 0).
+  Rotate to orient: `yaw=0` arm→+X, `yaw=π/2` arm→+Y, `yaw=π` arm→−X, `yaw=3π/2` arm→−Y.
+- **`track_cross_intersection`**: 1×0.5 horiz + 0.5×1 vert centred at origin.
+  Connections at (±0.5, 0) and (0, ±0.5).
 
 ### `generate_track.py` approach
 Uses a single `place(name, uri, x, y, yaw)` helper that emits `<include>` blocks.
-39 pieces total: 4 arcs + 16 straight outer + 2 T-intersections + 1 cross + 16 straight inner.
-Piece counts per section: top/bottom 5×1m each; left/right 2×1m+1T each; exit 1×1m;
-inner-horiz 5×1m; inner-vert 4×1m; upper-left 3×1m+1×0.5m; lower-right 1×0.5m+3×1m.
+37 track pieces: 4 arcs + 6 T-intersections + 2 cross intersections + 25 straight 1 m pieces.
+Plus 8 traffic signs (4× stop, 2× right, 1× left, 1× forward) at intersection approaches.
 
 ## Key Technical Decisions
 

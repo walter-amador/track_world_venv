@@ -126,7 +126,7 @@ def generate_launch_description():
             '-entity', 'limo_sim',
             '-topic', 'robot_description',
             '-x', '-4.0',
-            '-y', '-0.75',
+            '-y', '-0.30',
             '-z',  '0.05',
             '-R',  '0.0',
             '-P',  '0.0',
