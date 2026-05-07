@@ -8,21 +8,25 @@ Run from anywhere:
 Outputs: src/robot_sim/worlds/track_world.world
 
 Reusable models (src/robot_sim/models/):
-  track_straight_1m      — 1 m straight, runs along local X, centred at origin
-  track_straight_0_5m    — 0.5 m straight, runs along local X, centred at origin
-  track_arc_90           — 90° arc, R=1.5 m, arc-centre at origin, spans 0°→90°
-  track_t_intersection   — T-junction: vertical stem + 1 m arm extending to +X
-  track_cross_intersection — 4-way cross, ±0.75 m in X and Y from origin
+  track_straight_1m        — 1 m straight, runs along local X, centred at origin
+  track_straight_0_5m      — 0.5 m straight, runs along local X, centred at origin
+  track_arc_90             — 90° arc, R=1.5 m, arc-centre at origin, spans 0°→90°
+  track_t_intersection     — T-junction: 1 m N-S stem + 0.5 m arm to +X
+                             Connections: (0, ±0.5) stem ends, (+0.5, 0) arm end
+  track_cross_intersection — 4-way cross, ±0.5 m arms in X and Y from origin
+                             Connections: (±0.5, 0) and (0, ±0.5)
 
 Layout (X = east, Y = north):
   Outer loop: top y=3.0, bottom y=-3.0, left x=-4.0, right x=4.0
   Corners:    R=1.5 m arcs at (±2.5, ±1.5)
-  Exit road:  y=0, x ∈ [4.25, 6.25]  (T arm + 1 extra 1 m piece)
-  Inner cross:  centre at (0, 0)
-  Inner horiz:  y=0,    x ∈ [-3.75, 3.75]
-  Inner vert:   x=0,    y ∈ [-2.75, 2.75]
+  Left T:     at (-4, 0), yaw=0 — arm extends east, end at x=-3.5
+  Right T:    at ( 4, 0), yaw=0 — arm extends east, end at x=4.5 (exit road)
+  Cross:      at (0, 0) — connections at x=±0.5, y=±0.5
+  Inner horiz:  y=0,    west x∈[-3.5,-0.5]  east x∈[0.5,~4.0]
+  Inner vert:   x=0,    north y∈[0.5,~3.0]  south y∈[-0.5,~-3.0]
   Upper-left:   y=1.25, x ∈ [-3.75, -0.25]
-  Lower-right:  y=-1.25,x ∈ [ 0.25,  3.75]
+  Lower-right:  y=-1.25,x ∈ [0.25,   3.75]
+  Exit road:    y=0,    x ∈ [4.5, 5.5]
 """
 
 import math
@@ -64,44 +68,60 @@ def build_track():
         pieces.append(place(f"bot_{i + 1}", "track_straight_1m", x, -3.0, yaw=0))
 
     # ── Left outer road  x=-4.0, y ∈ [-1.5, 1.5] ────────────────────────────
-    # T stem covers y ∈ [-0.5, 0.5]; T arm extends right as inner-horizontal start.
+    # T stem covers y ∈ [-0.5, 0.5]; T arm extends east, end at world x=-3.5.
     pieces.append(place("left_n", "track_straight_1m",    -4.0,  1.0, yaw=math.pi / 2))
     pieces.append(place("left_t", "track_t_intersection", -4.0,  0.0, yaw=0))
     pieces.append(place("left_s", "track_straight_1m",    -4.0, -1.0, yaw=math.pi / 2))
 
-    # ── Right outer road  x=4.0, y ∈ [-1.5, 1.5] + exit road to x=6.25 ──────
-    # T stem covers y ∈ [-0.5, 0.5]; T arm covers x ∈ [4.25, 5.25] (exit road).
+    # ── Right outer road  x=4.0, y ∈ [-1.5, 1.5] + exit road to x=5.5 ───────
+    # T stem covers y ∈ [-0.5, 0.5]; T arm extends east, end at world x=4.5.
+    # Exit road: 1 m piece follows arm, spanning x ∈ [4.5, 5.5].
     pieces.append(place("right_n", "track_straight_1m",     4.0,  1.0, yaw=math.pi / 2))
     pieces.append(place("right_t", "track_t_intersection",  4.0,  0.0, yaw=0))
     pieces.append(place("right_s", "track_straight_1m",     4.0, -1.0, yaw=math.pi / 2))
-    pieces.append(place("exit_1",  "track_straight_1m",     5.75, 0.0, yaw=0))
+    pieces.append(place("exit_1",  "track_straight_1m",     5.0,  0.0, yaw=0))
 
     # ── Center cross intersection ──────────────────────────────────────────────
+    # Connections: (±0.5, 0) for inner horizontal, (0, ±0.5) for inner vertical.
     pieces.append(place("cross", "track_cross_intersection", 0.0, 0.0, yaw=0))
 
-    # ── Inner horizontal  y=0, x ∈ [-3.75, 3.75] ─────────────────────────────
-    # West of cross: left T arm covers x ∈ [-3.75, -2.75]; 2 more pieces follow.
-    for i, x in enumerate([-2.25, -1.25]):
+    # ── Inner horizontal  y=0 ─────────────────────────────────────────────────
+    # West of cross: left T arm end at x=-3.5 → cross west connection at x=-0.5.
+    # 3×1m centres at -3.0, -2.0, -1.0 span exactly x ∈ [-3.5, -0.5].
+    for i, x in enumerate([-3.0, -2.0, -1.0]):
         pieces.append(place(f"ih_w{i + 1}", "track_straight_1m", x, 0.0, yaw=0))
-    # East of cross: 3 pieces reach x=3.75 (right T stem bridges to outer road).
-    for i, x in enumerate([1.25, 2.25, 3.25]):
+
+    # East of cross: cross east connection at x=0.5 → right T stem at x=3.75.
+    # 0.5 m piece bridges the first gap; 3×1m reach x=4.0, overlapping T stem
+    # by 0.25 m — both surfaces are grey road, so visually seamless.
+    pieces.append(place("ih_e0", "track_straight_0_5m", 0.75, 0.0, yaw=0))
+    for i, x in enumerate([1.5, 2.5, 3.5]):
         pieces.append(place(f"ih_e{i + 1}", "track_straight_1m", x, 0.0, yaw=0))
 
-    # ── Inner vertical  x=0, y ∈ [-2.75, 2.75] ───────────────────────────────
-    # Outer top/bottom road edges are at y=±2.75 — these pieces abut them exactly.
-    for i, y in enumerate([-2.25, -1.25]):
-        pieces.append(place(f"iv_s{i + 1}", "track_straight_1m", 0.0, y, yaw=math.pi / 2))
-    for i, y in enumerate([1.25, 2.25]):
+    # ── Inner vertical  x=0 ───────────────────────────────────────────────────
+    # North: cross north connection at y=0.5 → top outer south face at y=2.75.
+    # 0.5 m piece + 2×1m reach y=3.0, overlapping top outer by 0.25 m (fine).
+    pieces.append(place("iv_n0", "track_straight_0_5m", 0.0,  0.75, yaw=math.pi / 2))
+    for i, y in enumerate([1.5, 2.5]):
         pieces.append(place(f"iv_n{i + 1}", "track_straight_1m", 0.0, y, yaw=math.pi / 2))
 
+    # South: cross south connection at y=-0.5 → bottom outer north face at y=-2.75.
+    pieces.append(place("iv_s0", "track_straight_0_5m", 0.0, -0.75, yaw=math.pi / 2))
+    for i, y in enumerate([-1.5, -2.5]):
+        pieces.append(place(f"iv_s{i + 1}", "track_straight_1m", 0.0, y, yaw=math.pi / 2))
+
     # ── Upper-left inner road  y=1.25, x ∈ [-3.75, -0.25] ───────────────────
-    # 3 × 1 m + 1 × 0.5 m = 3.5 m total.
+    # West end abuts left outer road east face (x=-3.75).
+    # East end abuts inner vertical road west face (x=-0.25).
+    # 3×1m + 1×0.5m = 3.5 m total.
     for i, x in enumerate([-3.25, -2.25, -1.25]):
         pieces.append(place(f"ul_{i + 1}", "track_straight_1m",   x, 1.25, yaw=0))
     pieces.append(place("ul_4", "track_straight_0_5m", -0.5, 1.25, yaw=0))
 
     # ── Lower-right inner road  y=-1.25, x ∈ [0.25, 3.75] ───────────────────
-    # 1 × 0.5 m + 3 × 1 m = 3.5 m total.
+    # West end abuts inner vertical road east face (x=0.25).
+    # East end abuts right outer road west face (x=3.75).
+    # 1×0.5m + 3×1m = 3.5 m total.
     pieces.append(place("lr_1", "track_straight_0_5m",  0.5, -1.25, yaw=0))
     for i, x in enumerate([1.25, 2.25, 3.25]):
         pieces.append(place(f"lr_{i + 2}", "track_straight_1m", x, -1.25, yaw=0))
@@ -119,10 +139,10 @@ def build_track():
 # Road width = 0.50 m; sign offset = 0.35 m from centreline (just outside edge).
 #
 # Layout reminder (centrelines):
-#   Left outer: x=-4.0, N-S, T-junction at y=0 (arm east toward inner horiz)
-#   Inner horiz: y=0,   E-W, cross at (0,0)
-#   Inner vert:  x=0,   N-S, cross at (0,0), lower-right arm at y=-1.25
-#   Exit road:   y=0, x ∈ [4.25, 6.25], eastbound
+#   Left outer:  x=-4.0, N-S, T-junction at y=0 (arm east, end x=-3.5)
+#   Inner horiz: y=0,    E-W, cross at (0,0); connections at x=±0.5
+#   Inner vert:  x=0,    N-S, cross at (0,0); connections at y=±0.5
+#   Exit road:   y=0,    x ∈ [4.5, 5.5], eastbound
 #
 def build_signs():
     signs = []
@@ -142,16 +162,17 @@ def build_signs():
     signs.append(place("sign_right_1", "sign_right", 0.35, -1.75, yaw=math.pi))
 
     # Same northbound inner vertical road, approaching cross intersection at y=0.
+    # Cross south connection now at y=-0.5.
     # STOP: "stop before entering the cross".
     signs.append(place("sign_stop_1", "sign_stop", 0.35, -0.80, yaw=math.pi))
 
-    # Exit road (y=0, x > 4.25) is one-way eastbound.
+    # Exit road (y=0, x ∈ [4.5, 5.5]) is one-way eastbound.
     # NO ENTRY: mid-road, reminds that re-entry going west is not allowed.
     signs.append(place("sign_no_entry_1", "sign_no_entry", 5.00, -0.35, yaw=math.pi / 2))
 
-    # End of exit road at x ≈ 6.25.
+    # End of exit road at x ≈ 5.5.
     # DEAD END: road terminates ahead.
-    signs.append(place("sign_dead_end_1", "sign_dead_end", 6.10, -0.35, yaw=math.pi / 2))
+    signs.append(place("sign_dead_end_1", "sign_dead_end", 5.40, -0.35, yaw=math.pi / 2))
 
     return '\n'.join(signs)
 
@@ -216,4 +237,4 @@ if __name__ == "__main__":
 
     n_includes = world_content.count('<include>')
     print(f"Written  : {out_path}")
-    print(f"<include> elements: {n_includes}  (was 371 <model> boxes)")
+    print(f"<include> elements: {n_includes}")

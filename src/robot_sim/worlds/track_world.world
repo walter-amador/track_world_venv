@@ -133,7 +133,7 @@
     <include>
       <name>exit_1</name>
       <uri>model://track_straight_1m</uri>
-      <pose>5.75000 0.00000 0.00000 0 0 0.00000</pose>
+      <pose>5.00000 0.00000 0.00000 0 0 0.00000</pose>
     </include>
     <include>
       <name>cross</name>
@@ -143,47 +143,67 @@
     <include>
       <name>ih_w1</name>
       <uri>model://track_straight_1m</uri>
-      <pose>-2.25000 0.00000 0.00000 0 0 0.00000</pose>
+      <pose>-3.00000 0.00000 0.00000 0 0 0.00000</pose>
     </include>
     <include>
       <name>ih_w2</name>
       <uri>model://track_straight_1m</uri>
-      <pose>-1.25000 0.00000 0.00000 0 0 0.00000</pose>
+      <pose>-2.00000 0.00000 0.00000 0 0 0.00000</pose>
+    </include>
+    <include>
+      <name>ih_w3</name>
+      <uri>model://track_straight_1m</uri>
+      <pose>-1.00000 0.00000 0.00000 0 0 0.00000</pose>
+    </include>
+    <include>
+      <name>ih_e0</name>
+      <uri>model://track_straight_0_5m</uri>
+      <pose>0.75000 0.00000 0.00000 0 0 0.00000</pose>
     </include>
     <include>
       <name>ih_e1</name>
       <uri>model://track_straight_1m</uri>
-      <pose>1.25000 0.00000 0.00000 0 0 0.00000</pose>
+      <pose>1.50000 0.00000 0.00000 0 0 0.00000</pose>
     </include>
     <include>
       <name>ih_e2</name>
       <uri>model://track_straight_1m</uri>
-      <pose>2.25000 0.00000 0.00000 0 0 0.00000</pose>
+      <pose>2.50000 0.00000 0.00000 0 0 0.00000</pose>
     </include>
     <include>
       <name>ih_e3</name>
       <uri>model://track_straight_1m</uri>
-      <pose>3.25000 0.00000 0.00000 0 0 0.00000</pose>
+      <pose>3.50000 0.00000 0.00000 0 0 0.00000</pose>
     </include>
     <include>
-      <name>iv_s1</name>
-      <uri>model://track_straight_1m</uri>
-      <pose>0.00000 -2.25000 0.00000 0 0 1.57080</pose>
-    </include>
-    <include>
-      <name>iv_s2</name>
-      <uri>model://track_straight_1m</uri>
-      <pose>0.00000 -1.25000 0.00000 0 0 1.57080</pose>
+      <name>iv_n0</name>
+      <uri>model://track_straight_0_5m</uri>
+      <pose>0.00000 0.75000 0.00000 0 0 1.57080</pose>
     </include>
     <include>
       <name>iv_n1</name>
       <uri>model://track_straight_1m</uri>
-      <pose>0.00000 1.25000 0.00000 0 0 1.57080</pose>
+      <pose>0.00000 1.50000 0.00000 0 0 1.57080</pose>
     </include>
     <include>
       <name>iv_n2</name>
       <uri>model://track_straight_1m</uri>
-      <pose>0.00000 2.25000 0.00000 0 0 1.57080</pose>
+      <pose>0.00000 2.50000 0.00000 0 0 1.57080</pose>
+    </include>
+    <include>
+      <name>iv_s0</name>
+      <uri>model://track_straight_0_5m</uri>
+      <pose>0.00000 -0.75000 0.00000 0 0 1.57080</pose>
+    </include>
+    <include>
+      <name>iv_s1</name>
+      <uri>model://track_straight_1m</uri>
+      <pose>0.00000 -1.50000 0.00000 0 0 1.57080</pose>
+    </include>
+    <include>
+      <name>iv_s2</name>
+      <uri>model://track_straight_1m</uri>
+      <pose>0.00000 -2.50000 0.00000 0 0 1.57080</pose>
     </include>
     <include>
       <name>ul_1</name>
@@ -254,7 +274,7 @@
     <include>
       <name>sign_dead_end_1</name>
       <uri>model://sign_dead_end</uri>
-      <pose>6.10000 -0.35000 0.00000 0 0 1.57080</pose>
+      <pose>5.40000 -0.35000 0.00000 0 0 1.57080</pose>
     </include>
   </world>
 </sdf>
