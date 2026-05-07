@@ -24,7 +24,7 @@
 
     <gui fullscreen="0">
       <camera name="user_camera">
-        <pose>1.0 0.0 20.0 0 1.55 0</pose>
+        <pose>1.0 0.0 22.0 0 1.55 0</pose>
         <view_controller>orbit</view_controller>
         <projection_type>perspective</projection_type>
       </camera>
@@ -217,24 +217,230 @@
     </include>
 
     <include>
-      <name>sign_stop_1</name>
-      <uri>model://sign_stop</uri>
-      <pose>-3.65000 0.55000 0.00000 0 0 3.14159</pose>
+      <name>sr_arc_tr</name>
+      <uri>model://track_arc_90</uri>
+      <pose>5.00000 4.00000 0.00000 0 0 0.00000</pose>
     </include>
+    <include>
+      <name>sr_arc_tl</name>
+      <uri>model://track_arc_90</uri>
+      <pose>-5.00000 4.00000 0.00000 0 0 1.57080</pose>
+    </include>
+    <include>
+      <name>sr_arc_bl</name>
+      <uri>model://track_arc_90</uri>
+      <pose>-5.00000 -4.00000 0.00000 0 0 3.14159</pose>
+    </include>
+    <include>
+      <name>sr_arc_br</name>
+      <uri>model://track_arc_90</uri>
+      <pose>5.00000 -4.00000 0.00000 0 0 4.71239</pose>
+    </include>
+    <include>
+      <name>sr_top_1</name>
+      <uri>model://track_straight_1m</uri>
+      <pose>-4.50000 5.50000 0.00000 0 0 0.00000</pose>
+    </include>
+    <include>
+      <name>sr_top_2</name>
+      <uri>model://track_straight_1m</uri>
+      <pose>-3.50000 5.50000 0.00000 0 0 0.00000</pose>
+    </include>
+    <include>
+      <name>sr_top_3</name>
+      <uri>model://track_straight_1m</uri>
+      <pose>-2.50000 5.50000 0.00000 0 0 0.00000</pose>
+    </include>
+    <include>
+      <name>sr_top_4</name>
+      <uri>model://track_straight_1m</uri>
+      <pose>-1.50000 5.50000 0.00000 0 0 0.00000</pose>
+    </include>
+    <include>
+      <name>sr_top_5</name>
+      <uri>model://track_straight_1m</uri>
+      <pose>-0.50000 5.50000 0.00000 0 0 0.00000</pose>
+    </include>
+    <include>
+      <name>sr_top_6</name>
+      <uri>model://track_straight_1m</uri>
+      <pose>0.50000 5.50000 0.00000 0 0 0.00000</pose>
+    </include>
+    <include>
+      <name>sr_top_7</name>
+      <uri>model://track_straight_1m</uri>
+      <pose>1.50000 5.50000 0.00000 0 0 0.00000</pose>
+    </include>
+    <include>
+      <name>sr_top_8</name>
+      <uri>model://track_straight_1m</uri>
+      <pose>2.50000 5.50000 0.00000 0 0 0.00000</pose>
+    </include>
+    <include>
+      <name>sr_top_9</name>
+      <uri>model://track_straight_1m</uri>
+      <pose>3.50000 5.50000 0.00000 0 0 0.00000</pose>
+    </include>
+    <include>
+      <name>sr_top_10</name>
+      <uri>model://track_straight_1m</uri>
+      <pose>4.50000 5.50000 0.00000 0 0 0.00000</pose>
+    </include>
+    <include>
+      <name>sr_bot_1</name>
+      <uri>model://track_straight_1m</uri>
+      <pose>-4.50000 -5.50000 0.00000 0 0 0.00000</pose>
+    </include>
+    <include>
+      <name>sr_bot_2</name>
+      <uri>model://track_straight_1m</uri>
+      <pose>-3.50000 -5.50000 0.00000 0 0 0.00000</pose>
+    </include>
+    <include>
+      <name>sr_bot_3</name>
+      <uri>model://track_straight_1m</uri>
+      <pose>-2.50000 -5.50000 0.00000 0 0 0.00000</pose>
+    </include>
+    <include>
+      <name>sr_bot_4</name>
+      <uri>model://track_straight_1m</uri>
+      <pose>-1.50000 -5.50000 0.00000 0 0 0.00000</pose>
+    </include>
+    <include>
+      <name>sr_bot_5</name>
+      <uri>model://track_straight_1m</uri>
+      <pose>-0.50000 -5.50000 0.00000 0 0 0.00000</pose>
+    </include>
+    <include>
+      <name>sr_bot_6</name>
+      <uri>model://track_straight_1m</uri>
+      <pose>0.50000 -5.50000 0.00000 0 0 0.00000</pose>
+    </include>
+    <include>
+      <name>sr_bot_7</name>
+      <uri>model://track_straight_1m</uri>
+      <pose>1.50000 -5.50000 0.00000 0 0 0.00000</pose>
+    </include>
+    <include>
+      <name>sr_bot_8</name>
+      <uri>model://track_straight_1m</uri>
+      <pose>2.50000 -5.50000 0.00000 0 0 0.00000</pose>
+    </include>
+    <include>
+      <name>sr_bot_9</name>
+      <uri>model://track_straight_1m</uri>
+      <pose>3.50000 -5.50000 0.00000 0 0 0.00000</pose>
+    </include>
+    <include>
+      <name>sr_bot_10</name>
+      <uri>model://track_straight_1m</uri>
+      <pose>4.50000 -5.50000 0.00000 0 0 0.00000</pose>
+    </include>
+    <include>
+      <name>sr_left_1</name>
+      <uri>model://track_straight_1m</uri>
+      <pose>-6.50000 -3.50000 0.00000 0 0 1.57080</pose>
+    </include>
+    <include>
+      <name>sr_left_2</name>
+      <uri>model://track_straight_1m</uri>
+      <pose>-6.50000 -2.50000 0.00000 0 0 1.57080</pose>
+    </include>
+    <include>
+      <name>sr_left_3</name>
+      <uri>model://track_straight_1m</uri>
+      <pose>-6.50000 -1.50000 0.00000 0 0 1.57080</pose>
+    </include>
+    <include>
+      <name>sr_left_4</name>
+      <uri>model://track_straight_1m</uri>
+      <pose>-6.50000 -0.50000 0.00000 0 0 1.57080</pose>
+    </include>
+    <include>
+      <name>sr_left_5</name>
+      <uri>model://track_straight_1m</uri>
+      <pose>-6.50000 0.50000 0.00000 0 0 1.57080</pose>
+    </include>
+    <include>
+      <name>sr_left_6</name>
+      <uri>model://track_straight_1m</uri>
+      <pose>-6.50000 1.50000 0.00000 0 0 1.57080</pose>
+    </include>
+    <include>
+      <name>sr_left_7</name>
+      <uri>model://track_straight_1m</uri>
+      <pose>-6.50000 2.50000 0.00000 0 0 1.57080</pose>
+    </include>
+    <include>
+      <name>sr_left_8</name>
+      <uri>model://track_straight_1m</uri>
+      <pose>-6.50000 3.50000 0.00000 0 0 1.57080</pose>
+    </include>
+    <include>
+      <name>sr_right_1</name>
+      <uri>model://track_straight_1m</uri>
+      <pose>6.50000 -3.50000 0.00000 0 0 1.57080</pose>
+    </include>
+    <include>
+      <name>sr_right_2</name>
+      <uri>model://track_straight_1m</uri>
+      <pose>6.50000 -2.50000 0.00000 0 0 1.57080</pose>
+    </include>
+    <include>
+      <name>sr_right_3</name>
+      <uri>model://track_straight_1m</uri>
+      <pose>6.50000 -1.50000 0.00000 0 0 1.57080</pose>
+    </include>
+    <include>
+      <name>sr_right_4</name>
+      <uri>model://track_straight_1m</uri>
+      <pose>6.50000 -0.50000 0.00000 0 0 1.57080</pose>
+    </include>
+    <include>
+      <name>sr_right_5</name>
+      <uri>model://track_straight_1m</uri>
+      <pose>6.50000 0.50000 0.00000 0 0 1.57080</pose>
+    </include>
+    <include>
+      <name>sr_right_6</name>
+      <uri>model://track_straight_1m</uri>
+      <pose>6.50000 1.50000 0.00000 0 0 1.57080</pose>
+    </include>
+    <include>
+      <name>sr_right_7</name>
+      <uri>model://track_straight_1m</uri>
+      <pose>6.50000 2.50000 0.00000 0 0 1.57080</pose>
+    </include>
+    <include>
+      <name>sr_right_8</name>
+      <uri>model://track_straight_1m</uri>
+      <pose>6.50000 3.50000 0.00000 0 0 1.57080</pose>
+    </include>
+
     <include>
       <name>sign_right_1</name>
       <uri>model://sign_right</uri>
-      <pose>-3.20000 0.65000 0.00000 0 0 1.57080</pose>
+      <pose>-3.65000 0.10000 0.00000 0 0 3.14159</pose>
     </include>
     <include>
-      <name>sign_stop_2</name>
+      <name>sign_stop_1</name>
       <uri>model://sign_stop</uri>
-      <pose>-0.85000 0.65000 0.00000 0 0 1.57080</pose>
+      <pose>-3.65000 0.45000 0.00000 0 0 3.14159</pose>
     </include>
     <include>
       <name>sign_left_1</name>
       <uri>model://sign_left</uri>
-      <pose>0.35000 0.35000 0.00000 0 0 3.14159</pose>
+      <pose>-1.10000 0.65000 0.00000 0 0 1.57080</pose>
+    </include>
+    <include>
+      <name>sign_stop_2</name>
+      <uri>model://sign_stop</uri>
+      <pose>-0.60000 0.65000 0.00000 0 0 1.57080</pose>
+    </include>
+    <include>
+      <name>sign_left_2</name>
+      <uri>model://sign_left</uri>
+      <pose>0.35000 2.10000 0.00000 0 0 3.14159</pose>
     </include>
     <include>
       <name>sign_stop_3</name>
@@ -244,17 +450,22 @@
     <include>
       <name>sign_forward_1</name>
       <uri>model://sign_forward</uri>
-      <pose>0.35000 -0.40000 0.00000 0 0 3.14159</pose>
-    </include>
-    <include>
-      <name>sign_right_2</name>
-      <uri>model://sign_right</uri>
-      <pose>-0.85000 -1.35000 0.00000 0 0 1.57080</pose>
+      <pose>-0.35000 -0.10000 0.00000 0 0 0.00000</pose>
     </include>
     <include>
       <name>sign_stop_4</name>
       <uri>model://sign_stop</uri>
-      <pose>-0.35000 -2.45000 0.00000 0 0 0.00000</pose>
+      <pose>-0.35000 -0.45000 0.00000 0 0 0.00000</pose>
+    </include>
+    <include>
+      <name>sign_no_entry_1</name>
+      <uri>model://sign_no_entry</uri>
+      <pose>3.65000 1.55000 0.00000 0 0 0.00000</pose>
+    </include>
+    <include>
+      <name>sign_dead_end_1</name>
+      <uri>model://sign_dead_end</uri>
+      <pose>3.20000 -1.35000 0.00000 0 0 1.57080</pose>
     </include>
   </world>
 </sdf>

@@ -101,10 +101,15 @@ colcon build --symlink-install
   - Two continuous sidelines: 3 cm wide
   - Dashed centre line: 3 cm wide, 15 cm on / 8 cm gap
 - **Road surface:** dark grey (#181818), 2 mm thin, visual-only
-- **47 `<include>` elements** (37 track pieces + 8 traffic signs + ground + sun)
+- **89 `<include>` elements** (37 inner-track pieces + 40 speed-road pieces + 10 signs + ground + sun)
 - Robot spawns at (−4.0, −0.30, 0.05), yaw=π/2 (facing north, on outer-left road middle straight, between the two T-junctions)
 
-### Track layout (FIRA H-pattern; X=east, Y=north, all centreline coords)
+### Two-level track: inner FIRA H-pattern + outer speed-road perimeter
+The world contains two disjoint loops:
+- **Inner track** (FIRA-style, with intersections and signs) — for sign-aware navigation
+- **Speed road** (smooth perimeter, no intersections, no signs) — for unrestricted speed driving
+
+#### Inner track (X=east, Y=north, all centreline coords)
 ```
               top T (0,3) ⊤
          ┌────────────────────┐
@@ -126,6 +131,16 @@ Inner roads:
 - Lower horizontal: `y=-1.0`, `x ∈ [−3.5, 3.5]` — same structure
 - Inner vertical:   `x=0`,   `y ∈ [−2.5, 2.5]` — joins top/bottom outer T's, passes through both crosses
 
+#### Speed road perimeter
+Smooth oval surrounding the inner track with ~0.5 m clearance.
+- Centerline rectangle: top y=5.5, bottom y=-5.5, left x=-6.5, right x=6.5
+- Corner arcs R=1.5 at (±5.0, ±4.0)
+- 40 pieces total: 4 arcs + 10×1m top + 10×1m bottom + 8×1m left + 8×1m right
+- No T-intersections, no crosses, no signs — just a closed loop for speed practice
+
+#### Signs (inner track only — 10 total)
+Convention: directional sign placed BEFORE stop sign so robot reads "what to do" first, then "stop". 4 STOP+direction pairs at intersection approaches plus 2 standalone labels (NO-ENTRY on outer-right south of upper-right T arm; DEAD-END on lower-east inner road before lower-right T).
+
 ### Reusable track piece geometry
 All pieces are visual-only (no collision), road surface at z=0.001, markings at z=0.004.
 - **`track_straight_1m`**: 1 m along local X, centred at origin. Connect ends at x=±0.5.
@@ -142,8 +157,10 @@ All pieces are visual-only (no collision), road surface at z=0.001, markings at 
 
 ### `generate_track.py` approach
 Uses a single `place(name, uri, x, y, yaw)` helper that emits `<include>` blocks.
-37 track pieces: 4 arcs + 6 T-intersections + 2 cross intersections + 25 straight 1 m pieces.
-Plus 8 traffic signs (4× stop, 2× right, 1× left, 1× forward) at intersection approaches.
+Three sections: `build_inner_track()` (37 pieces), `build_speed_road()` (40 pieces),
+`build_signs()` (10 signs).
+Inner: 4 arcs + 6 T's + 2 crosses + 25 straight 1 m. Speed road: 4 arcs + 36 straight 1 m.
+Signs: 4 STOP + 2 LEFT + 1 RIGHT + 1 FORWARD + 1 NO-ENTRY + 1 DEAD-END.
 
 ## Key Technical Decisions
 
