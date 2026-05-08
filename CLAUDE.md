@@ -174,12 +174,17 @@ Signs: 4 STOP + 2 LEFT + 1 RIGHT + 1 FORWARD + 1 NO-ENTRY + 1 DEAD-END.
 - `libgazebo_ros_ackermann_drive.so` uses force-based PID (NOT ODE velocity motors like diff_drive)
 - **Root cause of NaN crashes**: plugin update rate was 100 Hz (10 ms); for wheel inertia 2.5e-4 kg·m², the closed-loop time constant τ_cl = I/(D_mech+P) ≈ 5.5 ms is below the Nyquist limit (T/2 = 5 ms) → sampled controller is unstable → oscillation → NaN
 - **Fix 1: update_rate=500** (2 ms step; τ_cl/T = 2.75 → stable)
-- **Fix 2: wheel joint damping=0.005** (was 0.05; widened stable P range from [0.052, 0.102] to [0.027, 0.158])
-- **Fix 3: PID = P=0.05, I=0.5, D=0** — D=0 avoids derivative spike on first PID call; I eliminates steady-state friction error
-- **Fix 4: pause/unpause** after spawn (RegisterEventHandler in launch file) — prevents NaN from GetVelocity(0) returning uninitialized value on first physics step
-- **Do NOT set D≠0** for linear velocity PID — the derivative of velocity error spikes on the first call even after pause/unpause
-- Steer PID uses P=2.0, D=0 — the steer joint has damping=0.3 Nm·s/rad which overdamps naturally; no D needed
+- **Fix 2: pause/unpause** after spawn (RegisterEventHandler in launch file) — prevents NaN from GetVelocity(0) returning uninitialized value on first physics step
+- **Fix 3: linear PID = P=0.10, I=0, D=0**.  Earlier `I=0.5` wound up to 50% overshoot; the rear-left wheel reversed during left turns.
+- **Fix 4: ackermann rear-wheel damping=0.02** (vs diff `0.005`).  The plugin closes its linear-velocity PID on `rear_right` alone but applies the same force to both rear wheels — during a left turn it commands negative force to slow the (faster) outer rear, which also pushes the (slower) inner-rear backwards.  Wheel-joint damping of 0.02 lets static friction (≤ 0.585 N·m) absorb the asymmetric force without the inner wheel reversing.  Steady-state forward speed = `P/(P+D)` of commanded ≈ 83 %.
+- Steer PID uses P=2.0, D=0 — the steer joint has damping=0.3 Nm·s/rad which overdamps naturally
 - The Prius demo uses P=800 at 100 Hz because prius wheel inertia is ~2000× larger (0.586 vs 0.00025 kg·m²)
+
+### Diff (4WD skid) tuning — hard-won lessons
+- **mu2 must be LOW (0.15)** on all 4 wheels.  At `mu2=0.4` the lateral friction stick-slipped during turns: forces would build, suddenly release, then re-grip → visible chassis judder, jerky odom angular velocity (max|Δω|≈0.94 rad/s between samples).
+- **`max_wheel_acceleration=6.0`** (was 1.0).  At 1.0 m/s² the velocity ramp took ~0.5 s to reach a 0.5 m/s target; teleop key taps barely moved the robot.
+- **`max_wheel_torque=5`** (was 2). Pairs with the higher acceleration so the plugin can actually drive the wheels to target.
+- Wheel-joint damping stays at 0.005 in diff mode.
 
 ## Checkpoints
 - [x] **CP1** — Flat world, two cones, LIMO-like robot, teleop drive, RViz2

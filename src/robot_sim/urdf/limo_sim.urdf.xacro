@@ -120,6 +120,18 @@
   </link>
 
   <!-- ================================================================
+       FRICTION COEFFICIENTS — chosen by drive mode.
+       Diff (skid): mu2 must be LOW so all 4 wheels slide laterally during
+                    turns; otherwise stick-slip causes visible turn judder.
+       Ackermann:   mu2 must be HIGH on rear wheels (drive axle) so the
+                    back doesn't break loose; front wheels also stay
+                    gripping for the steering geometry to work.
+  ================================================================ -->
+  <xacro:property name="WHEEL_MU1" value="1.0"/>
+  <xacro:property name="WHEEL_MU2_FIXED"
+                  value="${0.15 if DRIVE_MODE == 'diff' else 1.0}"/>
+
+  <!-- ================================================================
        WHEEL MACRO — fixed-position spinning wheel
        Used for: all 4 wheels in 'diff' mode, rear 2 wheels in 'ackermann'.
        Joint spins around Y axis directly (no joint-origin rotation).
@@ -131,7 +143,14 @@
       <child  link="${prefix}_wheel_link"/>
       <origin xyz="${x} ${y} ${WHEEL_Z_OFFSET}" rpy="0 0 0"/>
       <axis xyz="0 1 0"/>
-      <dynamics damping="0.005" friction="0.005"/>
+      <!-- Slightly higher damping in ackermann because the
+           gazebo_ros_ackermann_drive plugin closes its linear-velocity PID
+           on rear_right alone and pushes the same force into rear_left.
+           D=0.02 lets static wheel friction (up to 0.58 N·m) absorb the
+           force imbalance during turns. Forward steady-state ≈ P/(P+D) of
+           the commanded speed, so paired with P=0.15 gives ~88%. -->
+      <dynamics damping="${0.005 if DRIVE_MODE == 'diff' else 0.02}"
+                friction="0.005"/>
     </joint>
 
     <link name="${prefix}_wheel_link">
@@ -158,14 +177,12 @@
 
     <gazebo reference="${prefix}_wheel_link">
       <material>Gazebo/FlatBlack</material>
-      <mu1>1.2</mu1>
-      <!-- mu2=0.4: allows lateral sliding during skid-steer pivot turns.
-           steered_wheel keeps mu2=1.0 for ackermann lateral grip. -->
-      <mu2>0.4</mu2>
-      <kp>1000000.0</kp>
-      <kd>100.0</kd>
+      <mu1>${WHEEL_MU1}</mu1>
+      <mu2>${WHEEL_MU2_FIXED}</mu2>
+      <kp>500000.0</kp>
+      <kd>50.0</kd>
       <minDepth>0.001</minDepth>
-      <maxVel>0.5</maxVel>
+      <maxVel>1.0</maxVel>
       <fdir1>1 0 0</fdir1>
     </gazebo>
   </xacro:macro>
@@ -226,12 +243,12 @@
 
     <gazebo reference="${prefix}_wheel_link">
       <material>Gazebo/FlatBlack</material>
-      <mu1>1.2</mu1>
+      <mu1>${WHEEL_MU1}</mu1>
       <mu2>1.0</mu2>
-      <kp>1000000.0</kp>
-      <kd>100.0</kd>
+      <kp>500000.0</kp>
+      <kd>50.0</kd>
       <minDepth>0.001</minDepth>
-      <maxVel>0.5</maxVel>
+      <maxVel>1.0</maxVel>
       <fdir1>1 0 0</fdir1>
     </gazebo>
   </xacro:macro>
@@ -362,10 +379,11 @@
         <wheel_separation>${TRACK_HALF*2}</wheel_separation>
         <wheel_diameter>${WHEEL_RADIUS*2}</wheel_diameter>
         <wheel_diameter>${WHEEL_RADIUS*2}</wheel_diameter>
-        <!-- 2 Nm keeps ground force (40 N/wheel) proportionate to robot weight
-             (11.7 N/wheel). 20 Nm caused 400 N/wheel → ODE tips robot in turns. -->
-        <max_wheel_torque>2</max_wheel_torque>
-        <max_wheel_acceleration>1.0</max_wheel_acceleration>
+        <!-- Torque sized to body weight (≈11.7 N/wheel normal force).
+             Acceleration raised from 1.0 → 6.0 m/s² so velocity targets
+             ramp in ~80 ms instead of ~500 ms — keeps teleop responsive. -->
+        <max_wheel_torque>5</max_wheel_torque>
+        <max_wheel_acceleration>6.0</max_wheel_acceleration>
         <command_topic>cmd_vel</command_topic>
         <odometry_topic>odom</odometry_topic>
         <odometry_frame>odom</odometry_frame>
@@ -405,17 +423,20 @@
         <wheelbase>${WHEELBASE_HALF * 2}</wheelbase>
         <wheel_track>${TRACK_HALF * 2}</wheel_track>
 
-        <!-- PID gains — tuned for wheel inertia 2.5e-4 kg·m², damping 0.005.
-             Steer: P-only; steer joint damping=0.3 overdamps naturally, no D needed.
-             Linear: P=0.05 is inside the stable window [0.027, 0.158] at 500 Hz;
-                     I=0.5 eliminates steady-state error from joint friction;
-                     D=0 avoids derivative spike on first PID call. -->
+        <!-- PID gains.
+             Steer:  P-only; steer joint damping=0.3 overdamps naturally.
+             Linear: P=0.05 keeps applied force small enough that the
+                     plugin's left/right rear asymmetry (it only feeds back
+                     rear_right but applies the same force to both rears)
+                     is absorbed by the wheel-joint damping rather than
+                     reversing the inner-rear during turns.
+                     I=0, D=0 — integral wound up to 50% overshoot. -->
         <left_steering_pid_gain>2.0 0 0</left_steering_pid_gain>
         <left_steering_i_range>0 0</left_steering_i_range>
         <right_steering_pid_gain>2.0 0 0</right_steering_pid_gain>
         <right_steering_i_range>0 0</right_steering_i_range>
-        <linear_velocity_pid_gain>0.05 0.5 0</linear_velocity_pid_gain>
-        <linear_velocity_i_range>-2 2</linear_velocity_i_range>
+        <linear_velocity_pid_gain>0.10 0 0</linear_velocity_pid_gain>
+        <linear_velocity_i_range>0 0</linear_velocity_i_range>
 
         <command_topic>cmd_vel</command_topic>
         <odometry_topic>odom</odometry_topic>
