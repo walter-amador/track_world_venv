@@ -114,7 +114,10 @@ behavior_manager_node:
   ros__parameters:
 
     # Seconds in RECOVER state before giving up and transitioning to STOP.
-    recover_timeout: 3.0
+    # At 0.10 m/s and 0.25 rad steer (turn radius ≈ 0.78 m), correcting a
+    # 0.10 m lateral offset takes ~4 s — so 3 s was too short and the robot
+    # stopped before reacquiring the lane.
+    recover_timeout: 6.0
 
     # true  → robot starts driving immediately when lane_nav.launch.py is run.
     # false → wait for: ros2 topic pub /behavior/command std_msgs/String "data: START"

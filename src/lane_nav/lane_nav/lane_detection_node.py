@@ -141,6 +141,7 @@ class LaneDetectionNode(Node):
 
         nzy, nzx = warped.nonzero()
         left_ids, right_ids = [], []
+        left_hits = right_hits = 0   # windows where each line had enough pixels
 
         for i in range(n):
             y_lo = h - (i+1)*win_h
@@ -152,8 +153,12 @@ class LaneDetectionNode(Node):
             good_r = np.where((nzy>=y_lo)&(nzy<y_hi)&(nzx>=rx_lo)&(nzx<rx_hi))[0]
             left_ids.append(good_l)
             right_ids.append(good_r)
-            if len(good_l) > min_pix: left_cur  = int(np.mean(nzx[good_l]))
-            if len(good_r) > min_pix: right_cur = int(np.mean(nzx[good_r]))
+            if len(good_l) > min_pix:
+                left_cur  = int(np.mean(nzx[good_l]))
+                left_hits += 1
+            if len(good_r) > min_pix:
+                right_cur = int(np.mean(nzx[good_r]))
+                right_hits += 1
 
         left_ids  = np.concatenate(left_ids)
         right_ids = np.concatenate(right_ids)
@@ -162,7 +167,7 @@ class LaneDetectionNode(Node):
         ly = nzy[left_ids]  if len(left_ids)  >= min_total else np.array([])
         rx = nzx[right_ids] if len(right_ids) >= min_total else np.array([])
         ry = nzy[right_ids] if len(right_ids) >= min_total else np.array([])
-        return lx, ly, rx, ry
+        return lx, ly, rx, ry, left_hits, right_hits
 
     @staticmethod
     def _fit_poly(x, y):
@@ -192,17 +197,37 @@ class LaneDetectionNode(Node):
         warped_px = int(np.count_nonzero(warped))
         binary_px = int(np.count_nonzero(binary))
 
+        lx, ly, rx, ry, left_hits, right_hits = self._sliding_windows(warped)
+
         # Log every ~30 frames so the terminal isn't flooded
         if not hasattr(self, '_log_ctr'):
             self._log_ctr = 0
         self._log_ctr += 1
         if self._log_ctr % 30 == 0:
             self.get_logger().info(
-                f'thr={otsu_val}  binary_px={binary_px}  warped_px={warped_px}')
-
-        lx, ly, rx, ry = self._sliding_windows(warped)
+                f'thr={otsu_val}  binary_px={binary_px}  warped_px={warped_px}'
+                f'  L_hits={left_hits}  R_hits={right_hits}')
         lf = self._fit_poly(lx, ly)
         rf = self._fit_poly(rx, ry)
+
+        # Polynomial quality gate: discard a fit whose pixels are confined to the
+        # bottom half of the bird's-eye (near the robot only).  On sharp curves,
+        # the far portion of a lane boundary exits the IPM trapezoid, leaving
+        # only a handful of pixels near y = h.  A polynomial fit to those few
+        # bottom pixels extrapolates wildly to y_eva (the lookahead row), producing
+        # a completely wrong lane-centre estimate while still reporting NORMAL.
+        # Discarding the fit forces a fall-through to the single-line fallback
+        # (LOST_LEFT / LOST_RIGHT), which uses the remaining solid line + the
+        # nominal half-width, and gives a correct error signal.
+        #
+        # Threshold: if the topmost detected pixel (np.min of y array, because
+        # y=0 is FAR and y=h-1 is NEAR) is in the lower 50 % of the image, all
+        # pixels are within 50 % of the nearest end — too close to extrapolate.
+        _SPAN_NEAR_LIMIT = h * 0.50   # pixels must reach the top half
+        if lf is not None and len(ly) > 0 and np.min(ly) >= _SPAN_NEAR_LIMIT:
+            lf = None
+        if rf is not None and len(ry) > 0 and np.min(ry) >= _SPAN_NEAR_LIMIT:
+            rf = None
 
         laf   = self.get_parameter('lookahead_fraction').value
         y_eva = float(h - 1 - laf * (h - 1))
@@ -218,9 +243,21 @@ class LaneDetectionNode(Node):
             if lx_e >= rx_e:
                 lane_state = 'LOST_BOTH'
             else:
-                half_w        = max((rx_e - lx_e) / 2.0, 30.0)
-                lane_cx       = (lx_e + rx_e) / 2.0
-                lateral_error = (lane_cx - w / 2.0) / half_w
+                # Identify the right sideline by continuity: the solid right
+                # sideline appears in more windows than the dashed centre line
+                # (a dash cycle is ~23 cm = 200 px at 880 px/m, so 2-3 of the
+                # 9 windows fall on a gap).
+                #
+                # right_hits >= left_hits → rf is right sideline → right-lane
+                #   centre is nom px to its left.
+                # left_hits > right_hits  → lf is the more solid line (left
+                #   sideline), rf is the centre dashed line → robot is in the
+                #   left lane → right-lane centre is nom px to the right of rf.
+                if right_hits >= left_hits:
+                    lane_cx = rx_e - nom
+                else:
+                    lane_cx = rx_e + nom
+                lateral_error = (lane_cx - w / 2.0) / nom
                 curvature     = float(lf[0] + rf[0])
                 lane_state    = 'NORMAL'
         elif lf is not None:
@@ -254,7 +291,8 @@ class LaneDetectionNode(Node):
                 img, binary, enhanced, warped,
                 lx, ly, rx, ry, lf, rf,
                 lateral_error, lane_state, y_eva,
-                otsu_val, binary_px, warped_px, w, h)
+                otsu_val, binary_px, warped_px, w, h,
+                left_hits, right_hits)
             self._pub_debug.publish(self._bridge.cv2_to_imgmsg(dbg, 'bgr8'))
 
     # ── debug visualisation ──────────────────────────────────────────────────
@@ -262,7 +300,8 @@ class LaneDetectionNode(Node):
     def _debug_image(self, raw, binary, enhanced, warped,
                      lx, ly, rx, ry, lf, rf,
                      error, state, y_eva,
-                     otsu_val, binary_px, warped_px, w, h):
+                     otsu_val, binary_px, warped_px, w, h,
+                     left_hits=0, right_hits=0):
         half_h = h // 2    # 240
         half_w = w // 2    # 320
 
@@ -325,6 +364,8 @@ class LaneDetectionNode(Node):
                     (5, 36), cv2.FONT_HERSHEY_SIMPLEX, 0.5, sc, 1)
         cv2.putText(panel_c, f'err={error:+.3f}',
                     (5, 54), cv2.FONT_HERSHEY_SIMPLEX, 0.5, sc, 1)
+        cv2.putText(panel_c, f'L:{left_hits} R:{right_hits}',
+                    (5, 72), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (200, 200, 200), 1)
 
         # ── Assemble ──────────────────────────────────────────────────────────
         bottom = np.hstack([panel_b, panel_c])

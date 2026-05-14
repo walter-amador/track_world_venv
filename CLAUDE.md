@@ -218,11 +218,12 @@ lane_controller_node   ←  /lane/lateral_error         │
 3. ROI-masked Otsu threshold: compute Otsu only on the road trapezoid pixels (floor: `white_thresh=80`) then mask non-road pixels to zero
 4. IPM `cv2.warpPerspective` maps the road trapezoid to a bird's-eye rectangle
 5. Histogram of bottom quarter → seed positions for the two line trackers
-6. 9 sliding windows per line → pixel clouds for center dashed line and right sideline
+6. 9 sliding windows per line → pixel clouds, counting **window hit count** (how many of the 9 windows found enough pixels) per line
 7. `np.polyfit(y, x, 2)` → x = a·y² + b·y + c per line
-8. Evaluate both polynomials at `lookahead_fraction` point (default 30 % from bottom of bird's-eye) → right lane centre x
-9. `lateral_error = (right_lane_cx − w/2) / (lane_half_width_px)` — zero when centred in right lane
-10. Exponential smoothing (α=0.75) and publish; `/lane/curvature` = lf[0] + rf[0] (sum of 'a' coefficients, px⁻¹)
+8. **Polynomial quality gate**: discard any fit whose topmost detected pixel is in the bottom half of the bird's-eye (all pixels too near robot to extrapolate reliably)
+9. **Right-lane identification via continuity** (two-line case): the solid right sideline appears in more windows than the dashed centre line. `right_hits >= left_hits` → rf is the right sideline, `lane_cx = rf_x − nom`. `left_hits > right_hits` → lf is the more solid line (left sideline), robot is in the **left lane**, `lane_cx = rf_x + nom` (strong rightward correction). Single-line cases are unambiguous: `rf` alone → `rf − nom`; `lf` alone → `lf + nom`.
+10. `lateral_error = (lane_cx − w/2) / nom` — zero when centred in right lane
+11. Exponential smoothing (α=0.75) and publish; `/lane/curvature` = lf[0] + rf[0] (sum of 'a' coefficients, px⁻¹)
 
 ### IPM source trapezoid defaults (640×480 image)
 ```
@@ -231,6 +232,12 @@ ipm_src: [80, 470, 560, 470, 420, 290, 220, 290]
 ```
 Derived from camera geometry: height 0.175 m, no tilt, 70° HFOV.
 Tune by watching `/lane/debug_image`: lane lines should be approximately vertical after the warp.
+
+**Trapezoid geometry on curves**: At 1.59 m ahead on a 1.5 m radius right curve, the center dashed line has shifted ~1.1 m to the left of the camera's straight-ahead axis — well outside the ±0.35 m lateral coverage of the trapezoid top. Only the bottom portion (near the robot) still captures the center line. A polynomial fit to just those bottom pixels extrapolates wildly to the lookahead point. The detection node discards any polynomial whose topmost pixels are below the mid-image threshold (`np.min(y) >= h/2`), forcing a fallback to single-line LOST_LEFT mode. The right sideline (solid, always within the trapezoid) then provides a correct error signal. This is the designed behavior on curves.
+
+**LOST_LEFT on dashed-line gaps (straights)**: Normal and expected. The right sideline fallback gives err ≈ 0 when the robot is well-centred in the right lane. No recovery action is needed; LOST_LEFT IS the recovery.
+
+**Wrong-lane detection (two-line case)**: At 880 px/m scale and `nom=110 px` (= 0.125 m = one lane half-width), when the robot is in the LEFT lane both the left sideline (x≈210) and the centre dashed line (x≈430) are visible at the same pixel positions as the centre dashed line and right sideline would be if in the RIGHT lane. Position alone cannot distinguish the two scenarios. The solid right sideline hits all 9 sliding windows; the dashed centre line misses 2–3 per dash cycle. So `right_hits >= left_hits` → rf is the solid right sideline (normal right-lane case); `left_hits > right_hits` → lf is the solid left sideline (robot is in wrong lane) → `lane_cx = rf_x + nom` gives a +1.0 error that steers the robot right into the correct lane.
 
 ### PID + curvature feedforward sign convention
 ```
@@ -244,9 +251,11 @@ Speed adapts: `v = base_speed × (1 − 0.5·|steer|/max_steer)`.
 **Curvature feedforward rationale**: proportional-only control requires a persistent lateral error to maintain steering on a curve. At Kp=1.2 and a 1.5 m radius curve this steady-state offset is ~20 mm — acceptable on straights but visible on tight curves. The feedforward term uses `/lane/curvature` (sum of the 'a' polynomial coefficients, px⁻¹; positive = right curve) to inject the geometric steering signal before any error builds up. Kff=20 was derived from: steer_needed = atan(wheelbase/R) / curvature_px ≈ 32; tuned conservatively to 20 to avoid overcorrecting.
 
 ### Behavior state machine
-Current states: `FOLLOW_LANE` → `RECOVER` (lane lost, 3 s timeout) → `STOP`
+Current states: `FOLLOW_LANE` → `RECOVER` (lane lost, 6 s timeout) → `STOP`
 Future stub states already declared: `APPROACH_INTERSECTION`, `TURN_LEFT`, `TURN_RIGHT`, `GO_STRAIGHT`, `WAIT_CROSSWALK`
 External command bus: publish `std_msgs/String` to `/behavior/command` (`START`, `STOP`, `TURN_LEFT`, …)
+
+**RECOVER steer logic**: The controller blends two signals (each weighted 0.5): (1) P-only steer on the frozen `lateral_error` (detection node holds the last non-LOST_BOTH error value even when no lines are visible), and (2) `_last_follow_steer` (the full PID+FF output from the last FOLLOW_LANE tick, encoding the curve geometry). The blend handles two failure modes: if `_last_follow_steer` is small (robot was on a straight before going off-road), the frozen error still carries directional information; if the frozen error is ≈0 (robot was well centred), `_last_follow_steer` carries the curve. Clamped to ±60% of `max_angular_z`. recover_timeout = 6 s (raised from 3 s because correcting a 0.1 m offset at 0.1 m/s takes ~4 s).
 
 ### Scalability hooks for CP5
 - `/behavior/command` is the integration point for a YOLO sign-detector node — no changes to CV pipeline needed
@@ -270,6 +279,7 @@ External command bus: publish `std_msgs/String` to `/behavior/command` (`START`,
 - **Fix 4: ackermann rear-wheel damping=0.02** (vs diff `0.005`).  The plugin closes its linear-velocity PID on `rear_right` alone but applies the same force to both rear wheels — during a left turn it commands negative force to slow the (faster) outer rear, which also pushes the (slower) inner-rear backwards.  Wheel-joint damping of 0.02 lets static friction (≤ 0.585 N·m) absorb the asymmetric force without the inner wheel reversing.  Steady-state forward speed = `P/(P+D)` of commanded ≈ 83 %.
 - Steer PID uses P=2.0, D=0 — the steer joint has damping=0.3 Nm·s/rad which overdamps naturally
 - **Fix 5: steer joint friction=0.0** (was 0.02 N·m Coulomb friction).  With friction=0.02 N·m, the joint would stick whenever the PID error was small (P×error < 0.02 N·m → joint doesn't move). This manifested as the front wheels locking at an intermediate steer angle during teleop diagonal keys and lane_nav curves; back-and-forth commands were needed to break the stiction. With friction=0.0, damping=0.3 provides the only resistance — no stiction, smooth position tracking.
+- **Fix 6: steer joint limit widened from ±0.6 to ±0.80 rad**.  The Ackermann geometry computes inner-wheel steer angle as `atan2(tan(target_rot), 1 − ratio·tan(target_rot))` where `ratio = (track/2)/wheelbase = 0.085/0.20 = 0.425`.  At `target_rot = 0.6` (plugin max_steer) the inner wheel reaches **0.767 rad** — beyond the old ±0.6 limit.  Even lane_nav's `max_angular_z=0.5` pushes the inner wheel to **0.618 rad**, exceeding the limit on every moderate turn.  The physical joint limit was violated on every turn > 0.487 rad (27.9°): the steer PID pushed against the hard stop, ODE accumulated constraint-solver error across repeated back-and-forth cycles, and eventually steer joints reported the correct angle but produced no turning force.  Fix: set `lower="-0.80" upper="0.80"` — gives >0.03 rad headroom above the geometry maximum of 0.767 rad.
 - The Prius demo uses P=800 at 100 Hz because prius wheel inertia is ~2000× larger (0.586 vs 0.00025 kg·m²)
 
 ### Diff (4WD skid) tuning — hard-won lessons

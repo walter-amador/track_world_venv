@@ -198,7 +198,15 @@
       <child  link="${prefix}_steer_link"/>
       <origin xyz="${x} ${y} ${WHEEL_Z_OFFSET}" rpy="0 0 0"/>
       <axis xyz="0 0 1"/>
-      <limit lower="-0.6" upper="0.6" effort="50" velocity="3.0"/>
+      <!-- Physical limit must be wider than the JOINT LIMIT the Ackermann
+           geometry actually commands.  For max_steer=0.6 rad (plugin clamp),
+           the inner wheel angle = atan2(tan(0.6), 1−ratio·tan(0.6)) = 0.767 rad.
+           At max_angular_z=0.5 (lane_nav) the inner wheel reaches 0.618 rad.
+           The old ±0.6 rad limit was exceeded on every significant turn, causing
+           the steer PID to fight the hard stop and ODE to accumulate constraint
+           error across back-and-forth cycles — leading to steer non-response.
+           Setting ±0.80 rad gives >0.03 rad headroom above the geometry max. -->
+      <limit lower="-0.80" upper="0.80" effort="50" velocity="3.0"/>
       <!-- friction=0.0: Coulomb stiction at 0.02 N·m caused the steer joint to lock
            when PID error was small (P×e < 0.02 → no motion). damping=0.3 already
            overdamps the joint without needing static friction. -->

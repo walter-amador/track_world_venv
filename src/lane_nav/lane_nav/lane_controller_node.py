@@ -59,12 +59,13 @@ class LaneControllerNode(Node):
         self.declare_parameter('control_rate', 20.0)        # Hz
 
         # ── state ────────────────────────────────────────────────────────────
-        self._error          = 0.0
-        self._prev_error     = 0.0
-        self._integral       = 0.0
-        self._curvature      = 0.0
-        self._behavior_state = 'STOP'   # safe default until manager sends state
-        self._prev_time      = self.get_clock().now()
+        self._error              = 0.0
+        self._prev_error         = 0.0
+        self._integral           = 0.0
+        self._curvature          = 0.0
+        self._behavior_state     = 'STOP'   # safe default until manager sends state
+        self._last_follow_steer  = 0.0      # last steer output while FOLLOW_LANE
+        self._prev_time          = self.get_clock().now()
 
         # ── pub / sub ────────────────────────────────────────────────────────
         self._pub_cmd = self.create_publisher(Twist, '/cmd_vel', 10)
@@ -134,13 +135,23 @@ class LaneControllerNode(Node):
 
             cmd.linear.x  = speed
             cmd.angular.z = steer
+            self._last_follow_steer = steer  # save for RECOVER use
 
         elif self._behavior_state == 'RECOVER':
-            # Creep forward with gentler last-known correction
-            Kp  = self.get_parameter('Kp').value
-            cap = self.get_parameter('max_angular_z').value
-            steer = max(-cap * 0.5,
-                        min(cap * 0.5, -Kp * 0.4 * self._prev_error))
+            # Blend two recovery signals:
+            # 1. P-only on the frozen lateral_error — the detection node holds
+            #    error at the last non-LOST_BOTH reading, so it carries
+            #    directional memory even when no lines are currently visible.
+            # 2. _last_follow_steer — the full PID+FF output from the last
+            #    FOLLOW_LANE tick, encoding the curve geometry.
+            # Using only _last_follow_steer was insufficient when the robot had
+            # recently been on a straight (steer≈0) before going off-road on a
+            # curve; the blend ensures a non-zero steer in those cases.
+            cap   = self.get_parameter('max_angular_z').value
+            Kp    = self.get_parameter('Kp').value
+            pid_s = -(Kp * self._error)
+            blend = 0.5 * pid_s + 0.5 * self._last_follow_steer
+            steer = max(-cap * 0.6, min(cap * 0.6, blend))
             cmd.linear.x  = 0.10
             cmd.angular.z = steer
 
