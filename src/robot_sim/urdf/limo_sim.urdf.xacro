@@ -199,7 +199,10 @@
       <origin xyz="${x} ${y} ${WHEEL_Z_OFFSET}" rpy="0 0 0"/>
       <axis xyz="0 0 1"/>
       <limit lower="-0.6" upper="0.6" effort="50" velocity="3.0"/>
-      <dynamics damping="0.3" friction="0.02"/>
+      <!-- friction=0.0: Coulomb stiction at 0.02 N·m caused the steer joint to lock
+           when PID error was small (P×e < 0.02 → no motion). damping=0.3 already
+           overdamps the joint without needing static friction. -->
+      <dynamics damping="0.3" friction="0.0"/>
     </joint>
 
     <link name="${prefix}_steer_link">

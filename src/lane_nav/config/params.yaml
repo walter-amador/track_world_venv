@@ -82,9 +82,16 @@ lane_controller_node:
     # Kp: main proportional correction.  Start here when tuning.
     # Ki: integral (remove steady-state offset).  Keep 0 until Kp is stable.
     # Kd: derivative (damps oscillation).  Increase if robot weaves.
-    Kp: 0.8
+    Kp: 1.2
     Ki: 0.0
-    Kd: 0.05
+    Kd: 0.08
+
+    # ── Curvature feedforward ─────────────────────────────────────────────
+    # Anticipates curves before lateral error builds up.
+    # output += -Kff_curvature * curvature  (curvature from /lane/curvature, px⁻¹)
+    # For a 1.5 m radius curve: curvature ≈ 0.004 px⁻¹, ff ≈ 0.08 rad of steer.
+    # Raise if robot still cuts corners; lower if it oscillates entering curves.
+    Kff_curvature: 20.0
 
     # ── Speed ────────────────────────────────────────────────────────────
     # Forward speed on straight sections (m/s).

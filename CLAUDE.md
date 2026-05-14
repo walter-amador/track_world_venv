@@ -214,14 +214,15 @@ lane_controller_node   ←  /lane/lateral_error         │
 
 ### Lane detection pipeline
 1. Grayscale + GaussianBlur(5×5)
-2. Binary threshold at `white_thresh=200` — road ≈ gray 24, markings ≈ gray 255
-3. IPM `cv2.warpPerspective` using a source trapezoid defined by `ipm_src` parameter
-4. Histogram of bottom quarter → seed positions for the two line trackers
-5. 9 sliding windows per line → pixel clouds for center dashed line and right sideline
-6. `np.polyfit(y, x, 2)` → x = a·y² + b·y + c per line
-7. Evaluate both polynomials at `lookahead_fraction` point (default 30 % into bird's-eye) → right lane centre x
-8. `lateral_error = (right_lane_cx − w/2) / (lane_half_width_px)` — zero when centred in right lane
-9. Exponential smoothing (α=0.75) and publish
+2. CLAHE (adaptive histogram equalisation, 8×8 tiles) — makes markings stand out regardless of global scene brightness
+3. ROI-masked Otsu threshold: compute Otsu only on the road trapezoid pixels (floor: `white_thresh=80`) then mask non-road pixels to zero
+4. IPM `cv2.warpPerspective` maps the road trapezoid to a bird's-eye rectangle
+5. Histogram of bottom quarter → seed positions for the two line trackers
+6. 9 sliding windows per line → pixel clouds for center dashed line and right sideline
+7. `np.polyfit(y, x, 2)` → x = a·y² + b·y + c per line
+8. Evaluate both polynomials at `lookahead_fraction` point (default 30 % from bottom of bird's-eye) → right lane centre x
+9. `lateral_error = (right_lane_cx − w/2) / (lane_half_width_px)` — zero when centred in right lane
+10. Exponential smoothing (α=0.75) and publish; `/lane/curvature` = lf[0] + rf[0] (sum of 'a' coefficients, px⁻¹)
 
 ### IPM source trapezoid defaults (640×480 image)
 ```
@@ -231,13 +232,16 @@ ipm_src: [80, 470, 560, 470, 420, 290, 220, 290]
 Derived from camera geometry: height 0.175 m, no tilt, 70° HFOV.
 Tune by watching `/lane/debug_image`: lane lines should be approximately vertical after the warp.
 
-### PID sign convention
+### PID + curvature feedforward sign convention
 ```
 error > 0  →  robot left  of right-lane centre  →  steer RIGHT  (angular.z < 0)
 error < 0  →  robot right of right-lane centre  →  steer LEFT   (angular.z > 0)
-angular.z  =  −(Kp·e + Ki·∫e + Kd·ė)
+angular.z  =  −(Kp·e + Ki·∫e + Kd·ė)  −  Kff·curvature
 ```
-Default gains: Kp=0.8, Ki=0.0, Kd=0.05. Speed adapts: `v = base_speed × (1 − 0.5·|steer|/max_steer)`.
+Current gains: Kp=1.2, Ki=0.0, Kd=0.08, Kff_curvature=20.0.
+Speed adapts: `v = base_speed × (1 − 0.5·|steer|/max_steer)`.
+
+**Curvature feedforward rationale**: proportional-only control requires a persistent lateral error to maintain steering on a curve. At Kp=1.2 and a 1.5 m radius curve this steady-state offset is ~20 mm — acceptable on straights but visible on tight curves. The feedforward term uses `/lane/curvature` (sum of the 'a' polynomial coefficients, px⁻¹; positive = right curve) to inject the geometric steering signal before any error builds up. Kff=20 was derived from: steer_needed = atan(wheelbase/R) / curvature_px ≈ 32; tuned conservatively to 20 to avoid overcorrecting.
 
 ### Behavior state machine
 Current states: `FOLLOW_LANE` → `RECOVER` (lane lost, 3 s timeout) → `STOP`
@@ -265,6 +269,7 @@ External command bus: publish `std_msgs/String` to `/behavior/command` (`START`,
 - **Fix 3: linear PID = P=0.10, I=0, D=0**.  Earlier `I=0.5` wound up to 50% overshoot; the rear-left wheel reversed during left turns.
 - **Fix 4: ackermann rear-wheel damping=0.02** (vs diff `0.005`).  The plugin closes its linear-velocity PID on `rear_right` alone but applies the same force to both rear wheels — during a left turn it commands negative force to slow the (faster) outer rear, which also pushes the (slower) inner-rear backwards.  Wheel-joint damping of 0.02 lets static friction (≤ 0.585 N·m) absorb the asymmetric force without the inner wheel reversing.  Steady-state forward speed = `P/(P+D)` of commanded ≈ 83 %.
 - Steer PID uses P=2.0, D=0 — the steer joint has damping=0.3 Nm·s/rad which overdamps naturally
+- **Fix 5: steer joint friction=0.0** (was 0.02 N·m Coulomb friction).  With friction=0.02 N·m, the joint would stick whenever the PID error was small (P×error < 0.02 N·m → joint doesn't move). This manifested as the front wheels locking at an intermediate steer angle during teleop diagonal keys and lane_nav curves; back-and-forth commands were needed to break the stiction. With friction=0.0, damping=0.3 provides the only resistance — no stiction, smooth position tracking.
 - The Prius demo uses P=800 at 100 Hz because prius wheel inertia is ~2000× larger (0.586 vs 0.00025 kg·m²)
 
 ### Diff (4WD skid) tuning — hard-won lessons
