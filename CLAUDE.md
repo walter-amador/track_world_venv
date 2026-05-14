@@ -33,6 +33,13 @@ robot_sim/                     ← colcon workspace root (also git root)
       models/track_cross_intersection/ ← reusable 4-way cross
       urdf/limo_sim.urdf.xacro ← LIMO-like robot, dual drive mode
       config/rviz2.rviz
+    lane_nav/                  ← ROS2 ament_python package (CP5 lane following)
+      lane_nav/
+        lane_detection_node.py ← IPM + sliding windows + polynomial fit → /lane/*
+        lane_controller_node.py← PID error → /cmd_vel (Ackermann mode)
+        behavior_manager_node.py← state machine; command bus for YOLO / intersections
+      config/params.yaml       ← all tunable parameters with tuning notes
+      launch/lane_nav.launch.py← starts all three nodes
   build/   ← gitignored
   install/ ← gitignored
   log/     ← gitignored
@@ -52,6 +59,25 @@ Teleop (separate terminal):
 ```bash
 source /opt/ros/humble/setup.bash && source install/setup.bash
 ros2 run teleop_twist_keyboard teleop_twist_keyboard
+```
+
+Autonomous lane following (Ackermann, after Gazebo is running):
+```bash
+# Terminal 1 — simulation
+ros2 launch robot_sim track.launch.py drive_mode:=ackermann
+
+# Terminal 2 — lane nav stack
+source /opt/ros/humble/setup.bash && source install/setup.bash
+ros2 launch lane_nav lane_nav.launch.py
+
+# Terminal 3 — debug bird's-eye view
+source /opt/ros/humble/setup.bash && source install/setup.bash
+ros2 run rqt_image_view rqt_image_view /lane/debug_image
+
+# Manual control commands
+ros2 topic pub /behavior/command std_msgs/String "data: STOP"
+ros2 topic pub /behavior/command std_msgs/String "data: START"
+ros2 topic echo /lane/lateral_error
 ```
 
 To regenerate the track world after editing `generate_track.py`:
@@ -84,6 +110,8 @@ colcon build --symlink-install
 ### Camera sensor
 - `libgazebo_ros_camera.so` on `camera_link`, 30 FPS, 640×480, 70° HFOV
 - Optical frame: `camera_optical_link` (REP-103: x-right, y-down, z-forward)
+- Mount: `xyz="0.135 0 0.10"` relative to `base_link` → **height ≈ 0.175 m above ground**, horizontal (no downward tilt)
+- Derived VFOV ≈ 55.6°; focal length ≈ 457 px; horizon appears near y=300 in 640×480 image
 
 ## World: basic_world
 - Flat ground plane + sun
@@ -162,6 +190,65 @@ Three sections: `build_inner_track()` (37 pieces), `build_speed_road()` (40 piec
 Inner: 4 arcs + 6 T's + 2 crosses + 25 straight 1 m. Speed road: 4 arcs + 36 straight 1 m.
 Signs: 4 STOP + 2 LEFT + 1 RIGHT + 1 FORWARD + 1 NO-ENTRY + 1 DEAD-END.
 
+## Package: lane_nav (CP2.8 — autonomous lane following)
+
+### Architecture
+Three nodes in a clean pipeline:
+```
+/camera/image_raw
+       │
+       ▼
+lane_detection_node  →  /lane/lateral_error  (Float64, −1…+1)
+                     →  /lane/curvature      (Float64, pixels⁻¹)
+                     →  /lane/state          (String: NORMAL|LOST_LEFT|LOST_RIGHT|LOST_BOTH)
+                     →  /lane/debug_image    (Image, bird's-eye overlay)
+                                                      │
+behavior_manager_node  ←  /lane/state                │
+                       ←  /behavior/command  (ext.)   │
+                       →  /behavior/state    ─────────┤
+                                                      │
+lane_controller_node   ←  /lane/lateral_error         │
+                       ←  /behavior/state  ←──────────┘
+                       →  /cmd_vel
+```
+
+### Lane detection pipeline
+1. Grayscale + GaussianBlur(5×5)
+2. Binary threshold at `white_thresh=200` — road ≈ gray 24, markings ≈ gray 255
+3. IPM `cv2.warpPerspective` using a source trapezoid defined by `ipm_src` parameter
+4. Histogram of bottom quarter → seed positions for the two line trackers
+5. 9 sliding windows per line → pixel clouds for center dashed line and right sideline
+6. `np.polyfit(y, x, 2)` → x = a·y² + b·y + c per line
+7. Evaluate both polynomials at `lookahead_fraction` point (default 30 % into bird's-eye) → right lane centre x
+8. `lateral_error = (right_lane_cx − w/2) / (lane_half_width_px)` — zero when centred in right lane
+9. Exponential smoothing (α=0.75) and publish
+
+### IPM source trapezoid defaults (640×480 image)
+```
+ipm_src: [80, 470, 560, 470, 420, 290, 220, 290]
+          └─ near road ──┘    └─ far road (horizon) ─┘
+```
+Derived from camera geometry: height 0.175 m, no tilt, 70° HFOV.
+Tune by watching `/lane/debug_image`: lane lines should be approximately vertical after the warp.
+
+### PID sign convention
+```
+error > 0  →  robot left  of right-lane centre  →  steer RIGHT  (angular.z < 0)
+error < 0  →  robot right of right-lane centre  →  steer LEFT   (angular.z > 0)
+angular.z  =  −(Kp·e + Ki·∫e + Kd·ė)
+```
+Default gains: Kp=0.8, Ki=0.0, Kd=0.05. Speed adapts: `v = base_speed × (1 − 0.5·|steer|/max_steer)`.
+
+### Behavior state machine
+Current states: `FOLLOW_LANE` → `RECOVER` (lane lost, 3 s timeout) → `STOP`
+Future stub states already declared: `APPROACH_INTERSECTION`, `TURN_LEFT`, `TURN_RIGHT`, `GO_STRAIGHT`, `WAIT_CROSSWALK`
+External command bus: publish `std_msgs/String` to `/behavior/command` (`START`, `STOP`, `TURN_LEFT`, …)
+
+### Scalability hooks for CP5
+- `/behavior/command` is the integration point for a YOLO sign-detector node — no changes to CV pipeline needed
+- `behavior_manager_node._CMD_MAP` and `_ALL_STATES` are the only places to add new intersection logic
+- `publish_debug: false` in params.yaml disables the debug image stream for deployment
+
 ## Key Technical Decisions
 
 ### Always
@@ -190,9 +277,10 @@ Signs: 4 STOP + 2 LEFT + 1 RIGHT + 1 FORWARD + 1 NO-ENTRY + 1 DEAD-END.
 - [x] **CP1** — Flat world, two cones, LIMO-like robot, teleop drive, RViz2
 - [x] **CP2** — Dual drive modes (diff 4WD + Ackermann), active camera (30 FPS), RViz2
 - [x] **CP2.5** — Competition track world (`track.launch.py`): outer loop + inner roads + lane markings, reusable model pieces
+- [~] **CP2.8** — Autonomous lane following (`lane_nav` package): IPM + sliding window + PID + behavior state machine; right-lane tracking in Ackermann mode. Needs IPM calibration on first run; YOLO + intersection logic integration points are stubbed in.
 - [ ] **CP3** — SLAM (slam_toolbox), build a map of the environment
 - [ ] **CP4** — Nav2 autonomous navigation to goal poses
-- [ ] **CP5** — Computer vision integration for cone/lane detection
+- [ ] **CP5** — Computer vision integration for cone/lane detection (YOLO sign detector, crosswalk/intersection handler — hooks ready in behavior_manager_node)
 
 ## Installed Packages (relevant)
 `ros-humble-gazebo-ros-pkgs`, `ros-humble-gazebo-plugins`, `ros-humble-xacro`,

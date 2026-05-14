@@ -1,0 +1,114 @@
+# ============================================================
+# lane_nav  —  tunable parameters
+# ============================================================
+# After editing this file, rebuild with:
+#   colcon build --symlink-install
+# (With --symlink-install the YAML is already a symlink so changes
+#  take effect immediately on next ros2 launch without rebuilding.)
+# ============================================================
+
+lane_detection_node:
+  ros__parameters:
+
+    # ── Inverse Perspective Mapping ──────────────────────────────────────
+    # Source trapezoid in the original 640×480 camera image.
+    # Defines the ROAD REGION to map into a bird's-eye view rectangle.
+    # Corner order: [bl_x bl_y  br_x br_y  tr_x tr_y  tl_x tl_y]
+    #               (bl=bottom-left, tr=top-right, etc.)
+    #
+    # HOW TO TUNE (use the 3-panel debug image):
+    #   Panel A (top): raw camera with red trapezoid overlay.
+    #     The trapezoid should cover the road surface ahead of the robot.
+    #     Adjust ipm_src if the trapezoid clips the road or captures sky.
+    #   Panel B (bottom-left): binary threshold result.
+    #     White pixels = detected lane markings.  Should show clear white lines.
+    #     If all black → lower white_thresh or check Otsu value shown in panel A.
+    #     If all white → raise white_thresh.
+    #   Panel C (bottom-right): bird's-eye warped view.
+    #     Lane lines should appear approximately VERTICAL.
+    #     If they still converge → adjust ipm_src top corners outward.
+    #
+    # Defaults calibrated for:
+    #   camera height ≈ 0.175 m, horizontal mount, 70° HFOV, road width 0.5 m
+    ipm_src: [80, 470, 560, 470, 420, 290, 220, 290]
+
+    # Left and right margin (px) of the bird's-eye destination rectangle.
+    # Increase to zoom in on a narrower road section.
+    ipm_dst_margin: 100
+
+    # ── White-line threshold ─────────────────────────────────────────────
+    # Minimum Otsu threshold.  The node uses Otsu's auto-thresholding which
+    # adapts to the actual brightness of white markings in the rendered scene.
+    # This value is a safety floor: if Otsu picks something below it (uniform
+    # frame / robot off-road), the fixed value is used instead.
+    # Panel A of the debug image shows "Otsu thr=NNN" so you can monitor it.
+    white_thresh: 80
+
+    # ── Sliding window ───────────────────────────────────────────────────
+    # Number of horizontal strips the bird's-eye image is divided into.
+    n_windows: 9
+    # Half-width of each search window (px). Larger = more tolerant to noise.
+    window_margin: 50
+    # Minimum white pixels inside a window to accept it as a lane hit.
+    min_pix: 30
+
+    # ── Look-ahead ───────────────────────────────────────────────────────
+    # Fraction [0,1] of the bird's-eye image height at which to evaluate the
+    # fitted lane-centre polynomial.
+    #   0.0 = bottom row (nearest to robot) — purely reactive
+    #   0.3 = 30 % into the image — good compromise for curves (default)
+    #   0.6 = deeper look-ahead — smoother on curves, laggier on tight bends
+    lookahead_fraction: 0.3
+
+    # ── Single-line fallback ─────────────────────────────────────────────
+    # When only one lane boundary is detected, the other is estimated at
+    # this offset (px) in the bird's-eye view.
+    # Set to approximately half the road width in bird's-eye pixels.
+    nominal_lane_half_px: 110
+
+    # ── Error smoothing ──────────────────────────────────────────────────
+    # output = alpha * current + (1-alpha) * previous_output
+    # Higher alpha = less smoothing (more responsive, noisier).
+    smoothing_alpha: 0.75
+
+    # Set false to disable /lane/debug_image (saves CPU/bandwidth in deployment)
+    publish_debug: true
+
+
+lane_controller_node:
+  ros__parameters:
+
+    # ── PID gains ────────────────────────────────────────────────────────
+    # Kp: main proportional correction.  Start here when tuning.
+    # Ki: integral (remove steady-state offset).  Keep 0 until Kp is stable.
+    # Kd: derivative (damps oscillation).  Increase if robot weaves.
+    Kp: 0.8
+    Ki: 0.0
+    Kd: 0.05
+
+    # ── Speed ────────────────────────────────────────────────────────────
+    # Forward speed on straight sections (m/s).
+    # Reduce to 0.15 for initial testing.
+    base_speed: 0.25
+
+    # Maximum angular.z magnitude sent to Ackermann drive (rad/s).
+    # Keep below the limit implied by the steer joint (≈ 0.6 rad steering angle).
+    max_angular_z: 0.5
+
+    # How much to reduce speed at maximum steering.
+    # speed = base_speed * (1 - speed_reduction_factor * |steer| / max_angular_z)
+    speed_reduction_factor: 0.5
+
+    # PID loop update rate (Hz).
+    control_rate: 20.0
+
+
+behavior_manager_node:
+  ros__parameters:
+
+    # Seconds in RECOVER state before giving up and transitioning to STOP.
+    recover_timeout: 3.0
+
+    # true  → robot starts driving immediately when lane_nav.launch.py is run.
+    # false → wait for: ros2 topic pub /behavior/command std_msgs/String "data: START"
+    autostart: true
