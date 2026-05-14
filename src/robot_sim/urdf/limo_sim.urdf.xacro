@@ -103,10 +103,16 @@
       <material name="limo_black"/>
     </visual>
 
-    <!-- Collision: single bounding box covering deck + hood -->
+    <!-- Collision: raised box covering deck + hood, ABOVE wheel volumes.
+         In ackermann mode, wheel_link is grandchild of base_link
+         (base→steer→wheel), so ODE does NOT auto-disable their collision.
+         Old box (0.32×0.22×0.14 at Z=0.04) extended down to Z=−0.03,
+         overlapping the front wheel cylinders (top at Z=0.025) and
+         locking them against the chassis.  Raised to Z_min=0.04 with
+         15 mm clearance above wheel tops. -->
     <collision>
-      <origin xyz="0 0 0.04" rpy="0 0 0"/>
-      <geometry><box size="${CHASSIS_X} ${CHASSIS_Y} 0.14"/></geometry>
+      <origin xyz="0 0 0.075" rpy="0 0 0"/>
+      <geometry><box size="${CHASSIS_X} ${CHASSIS_Y} 0.07"/></geometry>
     </collision>
 
     <inertial>
@@ -121,15 +127,25 @@
 
   <!-- ================================================================
        FRICTION COEFFICIENTS — chosen by drive mode.
-       Diff (skid): mu2 must be LOW so all 4 wheels slide laterally during
-                    turns; otherwise stick-slip causes visible turn judder.
-       Ackermann:   mu2 must be HIGH on rear wheels (drive axle) so the
-                    back doesn't break loose; front wheels also stay
-                    gripping for the steering geometry to work.
+       fdir1=(0,1,0) aligns mu1 with the wheel AXLE (lateral) and mu2
+       with the rolling direction. Using Y avoids a critical ODE bug:
+       the old fdir1=(1,0,0) rotated with the wheel spin (continuous
+       joint about Y), and at every quarter-turn it became parallel to
+       the ground contact normal (0,0,1). ODE cannot project fdir1 onto
+       the tangent plane when they are parallel — friction drops to zero,
+       causing intermittent loss of traction (wheels steered but robot
+       slides straight). Y is the rotation axis so R_y(φ)*(0,1,0)=(0,1,0)
+       for all φ — always perpendicular to the contact normal.
+
+       mu1 = LATERAL friction (along fdir1 = axle direction)
+       mu2 = ROLLING friction (perpendicular to fdir1, in tangent plane)
+       Diff (skid):  mu1 LOW (0.15) so all 4 wheels slide laterally during
+                     turns; mu2 HIGH (1.0) for forward traction.
+       Ackermann:    mu1=mu2=1.0 — isotropic grip for cornering + traction.
   ================================================================ -->
-  <xacro:property name="WHEEL_MU1" value="1.0"/>
-  <xacro:property name="WHEEL_MU2_FIXED"
+  <xacro:property name="WHEEL_MU1"
                   value="${0.15 if DRIVE_MODE == 'diff' else 1.0}"/>
+  <xacro:property name="WHEEL_MU2_FIXED" value="1.0"/>
 
   <!-- ================================================================
        WHEEL MACRO — fixed-position spinning wheel
@@ -159,9 +175,16 @@
         <geometry><cylinder radius="${WHEEL_RADIUS}" length="${WHEEL_WIDTH}"/></geometry>
         <material name="wheel_black"/>
       </visual>
+      <!-- Sphere collision: ODE's cylinder-plane contact generates a line
+           contact approximated by 2 points. The iterative QuickStep solver
+           often fails to resolve the friction-induced rolling torque for
+           undriven wheels in multi-joint chains (steer→wheel), leaving
+           the front wheels locked at zero rotation. Sphere-plane produces
+           a single clean contact point with correct friction resolution.
+           Standard workaround used by TurtleBot3, Jackal, etc. -->
       <collision>
-        <origin xyz="0 0 0" rpy="1.5707963 0 0"/>
-        <geometry><cylinder radius="${WHEEL_RADIUS}" length="${WHEEL_WIDTH}"/></geometry>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry><sphere radius="${WHEEL_RADIUS}"/></geometry>
       </collision>
       <inertial>
         <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -183,7 +206,7 @@
       <kd>50.0</kd>
       <minDepth>0.001</minDepth>
       <maxVel>1.0</maxVel>
-      <fdir1>1 0 0</fdir1>
+      <fdir1>0 1 0</fdir1>
     </gazebo>
   </xacro:macro>
 
@@ -239,8 +262,8 @@
         <material name="wheel_black"/>
       </visual>
       <collision>
-        <origin xyz="0 0 0" rpy="1.5707963 0 0"/>
-        <geometry><cylinder radius="${WHEEL_RADIUS}" length="${WHEEL_WIDTH}"/></geometry>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry><sphere radius="${WHEEL_RADIUS}"/></geometry>
       </collision>
       <inertial>
         <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -260,7 +283,7 @@
       <kd>50.0</kd>
       <minDepth>0.001</minDepth>
       <maxVel>1.0</maxVel>
-      <fdir1>1 0 0</fdir1>
+      <fdir1>0 1 0</fdir1>
     </gazebo>
   </xacro:macro>
 
@@ -361,6 +384,24 @@
   </gazebo>
 
   <!-- ================================================================
+       SELF-COLLISION — must be disabled for ackermann mode.
+       In ackermann, wheel_link is grandchild of base_link
+       (base→steer_joint→steer_link→wheel_joint→wheel_link).
+       ODE only auto-disables collision between directly connected links
+       (parent↔child of the same joint), so base_link↔wheel_link
+       collision IS active.  The base_link collision box (0.32×0.22×0.14)
+       physically overlaps with the front wheel cylinders (inner edge at
+       Y=0.0625 vs box edge at Y=0.11; Z overlap in [−0.03, 0.025]).
+       Without this flag, the front wheels collide with the chassis and
+       get locked (zero rotation from spawn while rear wheels spin).
+       In diff mode this is not needed (wheel is direct child of base),
+       but disabling globally is harmless and prevents future issues.
+  ================================================================ -->
+  <gazebo>
+    <self_collide>false</self_collide>
+  </gazebo>
+
+  <!-- ================================================================
        BODY GAZEBO MATERIAL OVERRIDES
   ================================================================ -->
   <gazebo reference="base_link">
@@ -435,16 +476,25 @@
         <wheel_track>${TRACK_HALF * 2}</wheel_track>
 
         <!-- PID gains.
-             Steer:  P-only; steer joint damping=0.3 overdamps naturally.
-             Linear: P=0.05 keeps applied force small enough that the
+             Steer:  P=40 produces up to 24 Nm at full error (0.6 rad).
+                     The old P=2.0 produced only 1.2 Nm max, which was
+                     intermittently overwhelmed by ground-contact friction
+                     torques on the steered wheels (kp=500000 contact springs
+                     create large normal forces → large friction). With the
+                     plugin running at 500 Hz and physics at 1 kHz, force is
+                     only applied every other step, halving effective authority.
+                     Joint damping=0.3 keeps ζ≈1.12 (overdamped, no overshoot);
+                     dominant time constant ≈ D/P = 7.5 ms, well above the
+                     2 ms plugin period.
+             Linear: P=0.10 keeps applied force small enough that the
                      plugin's left/right rear asymmetry (it only feeds back
                      rear_right but applies the same force to both rears)
                      is absorbed by the wheel-joint damping rather than
                      reversing the inner-rear during turns.
                      I=0, D=0 — integral wound up to 50% overshoot. -->
-        <left_steering_pid_gain>2.0 0 0</left_steering_pid_gain>
+        <left_steering_pid_gain>40.0 0 0</left_steering_pid_gain>
         <left_steering_i_range>0 0</left_steering_i_range>
-        <right_steering_pid_gain>2.0 0 0</right_steering_pid_gain>
+        <right_steering_pid_gain>40.0 0 0</right_steering_pid_gain>
         <right_steering_i_range>0 0</right_steering_i_range>
         <linear_velocity_pid_gain>0.10 0 0</linear_velocity_pid_gain>
         <linear_velocity_i_range>0 0</linear_velocity_i_range>
