@@ -57,6 +57,9 @@ class LaneDetectionNode(Node):
         self.declare_parameter('nominal_lane_half_px', 110)
         self.declare_parameter('smoothing_alpha', 0.75)
         self.declare_parameter('publish_debug', True)
+        # 'white' = bright markings on dark road (simulation default)
+        # 'black' = dark tape on bright floor (physical robot testing)
+        self.declare_parameter('lane_color', 'white')
 
         self._last_error  = 0.0
         self._roi_mask    = None   # computed on first frame
@@ -122,7 +125,10 @@ class LaneDetectionNode(Node):
             otsu_val = min_thr
             thr      = min_thr
 
-        _, binary = cv2.threshold(enhanced, thr, 255, cv2.THRESH_BINARY)
+        thresh_type = (cv2.THRESH_BINARY_INV
+                       if self.get_parameter('lane_color').value == 'black'
+                       else cv2.THRESH_BINARY)
+        _, binary = cv2.threshold(enhanced, thr, 255, thresh_type)
         binary    = cv2.bitwise_and(binary, roi_mask)   # keep only road region
 
         return binary, int(otsu_val), gray, enhanced

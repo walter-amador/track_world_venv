@@ -2,9 +2,9 @@
 # lane_nav  —  tunable parameters
 # ============================================================
 # After editing this file, rebuild with:
-#   colcon build --symlink-install
-# (With --symlink-install the YAML is already a symlink so changes
-#  take effect immediately on next ros2 launch without rebuilding.)
+#   colcon build --symlink-install --packages-select lane_nav
+# data_files entries are copied (not symlinked) even with --symlink-install,
+# so a rebuild is required for YAML changes to take effect.
 # ============================================================
 
 lane_detection_node:
@@ -30,11 +30,19 @@ lane_detection_node:
     #
     # Defaults calibrated for:
     #   camera height ≈ 0.175 m, horizontal mount, 70° HFOV, road width 0.5 m
-    ipm_src: [80, 470, 560, 470, 420, 290, 220, 290]
+    ipm_src: [80,    470,   560,   470,   420,   300,   220,   300]
+    #         [0]    [1]    [2]    [3]    [4]    [5]    [6]    [7]
+    #          bl_x   bl_y   br_x   br_y   tr_x   tr_y   tl_x   tl_y
 
     # Left and right margin (px) of the bird's-eye destination rectangle.
     # Increase to zoom in on a narrower road section.
     ipm_dst_margin: 100
+
+    # ── Lane marking colour ──────────────────────────────────────────────
+    # 'white' — bright markings on dark road (Gazebo simulation, default).
+    # 'black' — dark tape on bright floor (physical robot testing).
+    # Changing this flips the binary threshold polarity; no other tuning needed.
+    lane_color: "white"
 
     # ── White-line threshold ─────────────────────────────────────────────
     # Minimum Otsu threshold.  The node uses Otsu's auto-thresholding which
@@ -82,9 +90,9 @@ lane_controller_node:
     # Kp: main proportional correction.  Start here when tuning.
     # Ki: integral (remove steady-state offset).  Keep 0 until Kp is stable.
     # Kd: derivative (damps oscillation).  Increase if robot weaves.
-    Kp: 1.2
+    Kp: 0.6
     Ki: 0.0
-    Kd: 0.08
+    Kd: 0.04
 
     # ── Curvature feedforward ─────────────────────────────────────────────
     # Anticipates curves before lateral error builds up.
@@ -104,7 +112,7 @@ lane_controller_node:
 
     # How much to reduce speed at maximum steering.
     # speed = base_speed * (1 - speed_reduction_factor * |steer| / max_angular_z)
-    speed_reduction_factor: 0.5
+    speed_reduction_factor: 0.8
 
     # PID loop update rate (Hz).
     control_rate: 20.0
