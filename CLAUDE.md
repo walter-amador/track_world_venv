@@ -40,6 +40,15 @@ robot_sim/                     ← colcon workspace root (also git root)
         behavior_manager_node.py← state machine; command bus for YOLO / intersections
       config/params.yaml       ← all tunable parameters with tuning notes
       launch/lane_nav.launch.py← starts all three nodes
+    obst_avoid/                ← ROS2 ament_python package (depth PoC)
+      obst_avoid/
+        model_loader.py        ← abstract DepthModel base + 4 implementations
+        depth_benchmark_node.py← passive viewer: runs model, publishes /depth/colorized
+        obstacle_avoidance_node.py← active: DRIVING→STOPPING→TURNING 90° right→DRIVING
+      config/params.yaml       ← model selection, zone geometry, avoidance tuning
+      launch/
+        depth_benchmark.launch.py    ← one model at a time, teleop separately
+        obstacle_avoidance.launch.py ← autonomous; do NOT run teleop at same time
   build/   ← gitignored
   install/ ← gitignored
   log/     ← gitignored
@@ -85,6 +94,142 @@ To regenerate the track world after editing `generate_track.py`:
 python3 src/robot_sim/scripts/generate_track.py
 colcon build --symlink-install
 ```
+
+## Package: obst_avoid — depth estimation PoC
+
+### One-time Python dependencies
+`ros2 launch` executables use `/usr/bin/python3` (NOT the project `.venv`).
+Install into the **system Python user site** with the `--user` flag:
+```bash
+# MiDaS, ZoeDepth — CPU build is fine for PoC (~800 MB)
+/usr/bin/python3 -m pip install --user torch torchvision \
+    --index-url https://download.pytorch.org/whl/cpu
+
+# Depth Anything V2 + MiDaS DPT transforms
+/usr/bin/python3 -m pip install --user transformers Pillow timm
+
+# Apple Depth Pro (optional — large checkpoint, extra step):
+/usr/bin/python3 -m pip install --user git+https://github.com/apple/ml-depth-pro.git
+# then follow the ml-depth-pro README to download the checkpoint weights
+```
+Verify the installs landed in the right place:
+```bash
+/usr/bin/python3 -c "import torch, transformers, timm; print('OK')"
+```
+
+### Script 1 — Passive depth benchmark (you drive, it watches)
+Run the simulation and teleop in the usual way; this node runs in a third terminal.
+One model at a time — kill the node and relaunch to switch models.
+
+```bash
+# Terminal 1 — simulation (Ackermann or diff, either works)
+source /opt/ros/humble/setup.bash && source install/setup.bash
+ros2 launch robot_sim sim.launch.py drive_mode:=ackermann
+
+# Terminal 2 — teleop
+source /opt/ros/humble/setup.bash && source install/setup.bash
+ros2 run teleop_twist_keyboard teleop_twist_keyboard
+
+# Terminal 3 — depth benchmark (pick ONE model per run)
+source /opt/ros/humble/setup.bash && source install/setup.bash
+ros2 launch obst_avoid depth_benchmark.launch.py model:=midas
+ros2 launch obst_avoid depth_benchmark.launch.py model:=depth_anything_v2
+ros2 launch obst_avoid depth_benchmark.launch.py model:=zoe_depth
+ros2 launch obst_avoid depth_benchmark.launch.py model:=depth_pro
+
+# Terminal 4 — visualise depth output
+source /opt/ros/humble/setup.bash && source install/setup.bash
+ros2 run rqt_image_view rqt_image_view /depth/colorized
+```
+
+Benchmark output: the node logs `latency=NNN ms  fps≈N.N` to the console every second.
+The colourised image shows a white-bordered centre zone; red pixels = depth below threshold.
+
+Launch args:
+- `model:=<name>`        which model to run (default: midas)
+- `variant:=<size>`      small | base | large | hybrid | n | k | nk (default: small)
+- `threshold:=0.20`      obstacle highlight threshold [0=closest, 1=farthest]
+
+### Script 2 — Obstacle avoidance node (two modes)
+
+#### Dry-run mode — camera test, you drive with teleop
+The node runs the full depth pipeline and shows the detection overlay on
+`/depth/colorized`, but **never publishes to /cmd_vel**.  Safe to run alongside
+teleop.  Use this to tune `threshold` and verify the zone geometry before
+switching to autonomous mode.
+
+```bash
+# Terminal 1 — simulation
+source /opt/ros/humble/setup.bash && source install/setup.bash
+ros2 launch robot_sim sim.launch.py drive_mode:=ackermann
+
+# Terminal 2 — teleop (you drive)
+source /opt/ros/humble/setup.bash && source install/setup.bash
+ros2 run teleop_twist_keyboard teleop_twist_keyboard
+
+# Terminal 3 — avoidance node in dry-run (pick ONE model)
+source /opt/ros/humble/setup.bash && source install/setup.bash
+ros2 launch obst_avoid obstacle_avoidance.launch.py model:=midas dry_run:=true
+
+# Terminal 4 — visualise
+source /opt/ros/humble/setup.bash && source install/setup.bash
+ros2 run rqt_image_view rqt_image_view /depth/colorized
+```
+
+The debug image shows `DRY RUN — OBSTACLE` (red) or `DRY RUN — clear` (green).
+The console logs `DRY RUN — obstacle detected (would trigger avoidance)` at 1 Hz when
+something is close, so you can see the threshold sensitivity while driving around.
+
+#### Autonomous mode — robot drives and avoids on its own
+**Do NOT run teleop or lane_nav at the same time** — they will fight over /cmd_vel.
+
+State machine: `DRIVING` → (obstacle) → `STOPPING` (0.5 s) → `TURNING` right 90° → `DRIVING`
+
+```bash
+# Terminal 1 — simulation
+source /opt/ros/humble/setup.bash && source install/setup.bash
+ros2 launch robot_sim sim.launch.py drive_mode:=ackermann
+
+# Terminal 2 — obstacle avoidance autonomous (pick ONE model)
+source /opt/ros/humble/setup.bash && source install/setup.bash
+ros2 launch obst_avoid obstacle_avoidance.launch.py model:=midas
+ros2 launch obst_avoid obstacle_avoidance.launch.py model:=depth_anything_v2
+ros2 launch obst_avoid obstacle_avoidance.launch.py model:=zoe_depth
+ros2 launch obst_avoid obstacle_avoidance.launch.py model:=depth_pro
+
+# Terminal 3 — visualise depth + state
+source /opt/ros/humble/setup.bash && source install/setup.bash
+ros2 run rqt_image_view rqt_image_view /depth/colorized
+
+# Emergency stop (any terminal)
+ros2 topic pub /cmd_vel geometry_msgs/Twist "{}"
+```
+
+Launch args:
+- `model:=<name>`, `variant:=<size>` — same as above
+- `threshold:=0.20`     lower = trigger only when very close; raise if too sensitive
+- `speed:=0.20`         forward driving speed (m/s)
+- `turn_dur:=3.5`       seconds to hold right-turn command; tune until you get ~90°
+- `debug:=true`         publish /depth/colorized (disable to save CPU)
+
+### Tuning the avoidance turn
+The `turn_duration` parameter controls how far the robot turns.
+At `turn_speed=0.10 m/s` and `turn_angular_z=0.45 rad/s`, one full 90° turn takes
+roughly `(π/2) / effective_yaw_rate` seconds.  In Ackermann mode the effective yaw rate
+depends on speed and steer angle; **start at 3.5 s and adjust** — increase if the robot
+turns < 90°, decrease if it overshoots.  Edit `config/params.yaml` or pass `turn_dur:=N`
+on the launch command line.
+
+### Model comparison cheat-sheet
+| Model             | Type         | Output      | Install size | Speed (CPU) |
+|-------------------|--------------|-------------|--------------|-------------|
+| `midas` (small)   | Relative     | Disparity   | ~90 MB       | ~5–15 fps   |
+| `depth_anything_v2` (small) | Relative | Disparity | ~98 MB  | ~3–10 fps   |
+| `zoe_depth` (n)   | Metric (NYU) | Metres      | ~340 MB      | ~1–3 fps    |
+| `depth_pro`       | Metric       | Metres      | ~2.5 GB      | <1 fps CPU  |
+
+Relative models: `obstacle_threshold=0.20` is a good starting point.
+Metric models (ZoeDepth, DepthPro): try `threshold:=0.35` — the metric scale differs.
 
 ## Robot: limo_sim (CP2 state)
 - Visual: LIMO Pro look — white lower deck, black upper hood, tilted front cowl, green LED strips, dual antennas
@@ -309,3 +454,9 @@ External command bus: publish `std_msgs/String` to `/behavior/command` (`START`,
 `ros-humble-forward-command-controller`, `python3-colcon-common-extensions`
 
 Not yet installed (needed for CP3+): `ros-humble-slam-toolbox`, `ros-humble-navigation2`, `ros-humble-nav2-bringup`
+
+## Docs
+
+- **[docs/DATASET_PIPELINE.md](docs/DATASET_PIPELINE.md)** — Full guide for the YOLO26n-seg dataset pipeline:
+  `collect_dataset.py` → `auto_label.py` → `augment_dataset.py` → train.
+  Covers HSV threshold tuning, augmentation details, gitignore rules, and training commands.

@@ -1,0 +1,79 @@
+# ============================================================
+# obst_avoid — tunable parameters
+# ============================================================
+# After editing this file, rebuild with:
+#   colcon build --symlink-install --packages-select obst_avoid
+# (data_files are copied, not symlinked, so a rebuild is needed after YAML edits)
+# ============================================================
+
+depth_benchmark_node:
+  ros__parameters:
+
+    # ── Model selection ──────────────────────────────────────────────────
+    # model_name:    midas | depth_anything_v2 | zoe_depth | depth_pro
+    # model_variant: model-specific size.
+    #   midas:             small | hybrid | large
+    #   depth_anything_v2: small | base   | large
+    #   zoe_depth:         n     | k      | nk
+    #   depth_pro:         (no variants — single checkpoint)
+    model_name: "midas"
+    model_variant: "small"
+
+    # ── Obstacle zone ────────────────────────────────────────────────────
+    # The detection zone is a vertical strip in the CENTRE of the image.
+    # Fractions are relative to frame width.
+    # Default: middle third (0.33 → 0.67).
+    zone_left_frac: 0.33
+    zone_right_frac: 0.67
+
+    # Normalised depth threshold [0=closest, 1=farthest].
+    # Pixels with norm < threshold are flagged as "close / dangerous".
+    # Tune with rqt_image_view /depth/colorized while driving toward a wall.
+    # Start with 0.20 (relative models) or raise to 0.35 for metric models
+    # if walls aren't triggering.
+    obstacle_threshold: 0.20
+
+
+obstacle_avoidance_node:
+  ros__parameters:
+
+    # ── Model (same options as above) ────────────────────────────────────
+    model_name: "midas"
+    model_variant: "small"
+
+    # ── Detection zone ───────────────────────────────────────────────────
+    zone_left_frac: 0.33
+    zone_right_frac: 0.67
+    # Top boundary of the zone (fraction of frame height from top).
+    # 0.40 = only check the lower 60% — avoids false triggers from sky/ceiling.
+    zone_top_frac: 0.40
+    obstacle_threshold: 0.20
+
+    # ── Speeds ──────────────────────────────────────────────────────────
+    # Forward speed while driving straight (m/s).
+    base_speed: 0.20
+    # Forward speed while executing the avoidance turn (m/s).
+    # Keep low so the arc radius is small.
+    turn_speed: 0.10
+
+    # ── Turn parameters ──────────────────────────────────────────────────
+    # |angular.z| sent while turning (rad/s).
+    # Right turn → node sends negative angular.z.
+    # Actual yaw rate depends on Ackermann geometry and turn_speed.
+    turn_angular_z: 0.45
+
+    # Seconds to hold the turn command.
+    # At turn_speed=0.10 m/s, turn_angular_z=0.45 rad/s:
+    #   yaw rate ≈ angular.z (cmd_vel is converted to steer angle by plugin)
+    #   90° ≈ (π/2) / effective_yaw_rate
+    # Tune empirically: increase if the robot turns < 90°, decrease if > 90°.
+    turn_duration: 3.5
+
+    # Seconds at zero velocity before starting the turn (let the robot settle).
+    stop_duration: 0.50
+
+    # Seconds driving straight after the turn before re-enabling obstacle checks.
+    resume_duration: 0.50
+
+    # Set false to disable /depth/colorized (saves CPU).
+    publish_debug: true

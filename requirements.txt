@@ -1,0 +1,28 @@
+# obst_avoid — direct Python dependencies
+# Install into /usr/bin/python3 user site (NOT the project .venv):
+#   /usr/bin/python3 -m pip install --user -r requirements.txt \
+#     --index-url https://download.pytorch.org/whl/cpu
+#
+# For GPU builds replace the index URL with the CUDA variant from pytorch.org.
+
+# ── Depth models ─────────────────────────────────────────────────────────────
+# MiDaS (small/hybrid/large) and ZoeDepth load via torch.hub
+torch>=2.12.0
+torchvision>=0.27.0
+
+# Depth Anything V2 pipeline (HuggingFace transformers)
+transformers>=5.9.0
+
+# MiDaS DPT variant backbone loader; also used by Depth Anything V2
+timm>=1.0.0
+
+# Image I/O used by all four model wrappers
+# PIL.Image.Resampling (used by transformers) requires >=9.1.0; 9.0.x ships on
+# Ubuntu 22.04 system Python — the --user install must override it.
+Pillow>=9.1.0
+
+# ── Apple Depth Pro (optional) ───────────────────────────────────────────────
+# Not on PyPI — install separately:
+#   /usr/bin/python3 -m pip install --user \
+#     git+https://github.com/apple/ml-depth-pro.git
+# Then download the checkpoint per the ml-depth-pro README.
