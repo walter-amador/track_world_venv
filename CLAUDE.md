@@ -49,6 +49,13 @@ robot_sim/                     ← colcon workspace root (also git root)
       launch/
         depth_benchmark.launch.py    ← one model at a time, teleop separately
         obstacle_avoidance.launch.py ← autonomous; do NOT run teleop at same time
+    obj_detection/             ← ROS2 ament_python package (CP5 sign detection PoC)
+      obj_detection/
+        inference_yolo26n.py   ← ROS2 node: /camera/image_raw → YOLO26n → cv2 window
+      launch/
+        inference.launch.py    ← starts inference node (args: conf, iou)
+  models/
+    yolo26n_openvino_model/    ← trained YOLO26n OpenVINO export (best.xml + best.bin)
   build/   ← gitignored
   install/ ← gitignored
   log/     ← gitignored
@@ -230,6 +237,60 @@ on the launch command line.
 
 Relative models: `obstacle_threshold=0.20` is a good starting point.
 Metric models (ZoeDepth, DepthPro): try `threshold:=0.35` — the metric scale differs.
+
+## Package: obj_detection — YOLO26n traffic-sign detection PoC
+
+Subscribes to `/camera/image_raw`, runs YOLO26n OpenVINO inference, and shows an
+annotated window with FPS. Designed for drive-and-observe evaluation alongside teleop.
+Does **not** publish to `/cmd_vel` — pure passive viewer.
+
+### Model
+- Path: `models/yolo26n_openvino_model/` — directory with `best.xml` + `best.bin` (OpenVINO IR format, trained 2026-05-12)
+- Classes: `dead_end`, `forward`, `left`, `no_entry`, `right`, `stop`
+- Input: 640×640, stride 32, end-to-end NMS included in export
+- Distance estimator: pinhole model using camera focal length (457 px at 70° HFOV, 640 px wide)
+  `D_cm = focal_px × real_size_cm / box_px`; `real_size_cm=8.0` (sign face default)
+
+### One-time Python dependencies
+```bash
+# Ultralytics (YOLO runner) and OpenVINO runtime
+/usr/bin/python3 -m pip install --user "ultralytics>=8.4.48" openvino
+```
+Verify:
+```bash
+/usr/bin/python3 -c "from ultralytics import YOLO; import openvino; print('OK')"
+```
+
+### Running alongside teleop
+```bash
+# Terminal 1 — simulation (basic or track world, either drive mode)
+source /opt/ros/humble/setup.bash && source install/setup.bash
+ros2 launch robot_sim sim.launch.py drive_mode:=ackermann
+
+# Terminal 2 — teleop (drive the robot past signs)
+source /opt/ros/humble/setup.bash && source install/setup.bash
+ros2 run teleop_twist_keyboard teleop_twist_keyboard
+
+# Terminal 3 — YOLO inference viewer
+source /opt/ros/humble/setup.bash && source install/setup.bash
+ros2 run obj_detection inference_yolo26n
+# or with custom thresholds:
+ros2 run obj_detection inference_yolo26n --conf 0.3 --iou 0.45
+# or via launch file:
+ros2 launch obj_detection inference.launch.py conf:=0.3
+```
+
+Window overlay:
+- Green boxes: detections with `class: conf | distance cm`
+- Cyan line: closest detected sign and its distance
+- White: FPS counter
+- Yellow: backend label (OpenVINO)
+
+Press **`q`** in the window to quit; **Ctrl+C** also works.
+
+### Launch args
+- `conf:=0.5`   confidence threshold — lower to catch more signs at the cost of false positives
+- `iou:=0.45`   NMS IoU threshold
 
 ## Robot: limo_sim (CP2 state)
 - Visual: LIMO Pro look — white lower deck, black upper hood, tilted front cowl, green LED strips, dual antennas
@@ -444,7 +505,7 @@ External command bus: publish `std_msgs/String` to `/behavior/command` (`START`,
 - [~] **CP2.8** — Autonomous lane following (`lane_nav` package): IPM + sliding window + PID + behavior state machine; right-lane tracking in Ackermann mode. Needs IPM calibration on first run; YOLO + intersection logic integration points are stubbed in.
 - [ ] **CP3** — SLAM (slam_toolbox), build a map of the environment
 - [ ] **CP4** — Nav2 autonomous navigation to goal poses
-- [ ] **CP5** — Computer vision integration for cone/lane detection (YOLO sign detector, crosswalk/intersection handler — hooks ready in behavior_manager_node)
+- [~] **CP5** — Computer vision integration: `obj_detection` package has YOLO26n sign-detection PoC running on robot camera (OpenVINO, teleop-assisted evaluation). Integration with `behavior_manager_node` via `/behavior/command` not yet wired up; crosswalk/intersection handler stubs are in place.
 
 ## Installed Packages (relevant)
 `ros-humble-gazebo-ros-pkgs`, `ros-humble-gazebo-plugins`, `ros-humble-xacro`,

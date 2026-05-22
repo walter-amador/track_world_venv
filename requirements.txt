@@ -1,9 +1,21 @@
-# obst_avoid — direct Python dependencies
+# Direct Python dependencies for ROS2 nodes in this workspace.
 # Install into /usr/bin/python3 user site (NOT the project .venv):
 #   /usr/bin/python3 -m pip install --user -r requirements.txt \
 #     --index-url https://download.pytorch.org/whl/cpu
 #
-# For GPU builds replace the index URL with the CUDA variant from pytorch.org.
+# The --index-url flag is only needed for the torch/torchvision lines (obst_avoid).
+# All other packages (obj_detection section) resolve from PyPI directly and do NOT
+# need the PyTorch index URL — install them separately if you skip torch:
+#   /usr/bin/python3 -m pip install --user ultralytics openvino
+#
+# For GPU torch builds replace the index URL with the CUDA variant from pytorch.org.
+
+# ── obj_detection — YOLO26n traffic-sign detection ───────────────────────────
+# Ultralytics YOLO runner (model class, inference API, OpenVINO backend loader)
+ultralytics>=8.4.48
+
+# OpenVINO runtime — required to load and run the best.xml / best.bin model
+openvino>=2024.0.0
 
 # ── Depth models ─────────────────────────────────────────────────────────────
 # MiDaS (small/hybrid/large) and ZoeDepth load via torch.hub
